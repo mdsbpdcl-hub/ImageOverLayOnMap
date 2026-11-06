@@ -12,6 +12,25 @@
     SM.bus.on("project", () => { SM.$("#project-name").value = SM.state.project.name; renderLayers(); renderObjects(); });
     SM.bus.on("history", updateHistory);
     SM.bus.on("savestate", updateSaveState);
+    // status-bar unit switcher
+    const st = SM.$("#st-units");
+    const showUnits = () => { st.textContent = `Units: ${SM.unitShort("length")} · ${SM.unitShort("area")}`; };
+    SM.bus.on("settings", showUnits); showUnits();
+    st.addEventListener("click", (e) => {
+      e.stopPropagation();
+      SM.$$(".units-pop").forEach((m) => m.remove());
+      const pop = SM.el("div", { class: "menu open units-pop" },
+        SM.el("div", { class: "rot-head", text: "Measurement units" }),
+        SM.el("label", { class: "muted", text: "Length" }), SM.unitSelect("length", "field"),
+        SM.el("label", { class: "muted", text: "Area" }), SM.unitSelect("area", "field"),
+        SM.el("div", { class: "menu-note", style: { padding: "6px 0 0" }, text: "Used in the panel, map labels, the measure tool and PNG/PDF exports. Files keep metres." }));
+      pop.addEventListener("click", (ev) => ev.stopPropagation());
+      document.body.append(pop);
+      const r = st.getBoundingClientRect();
+      pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 280)) + "px";
+      pop.style.top = r.top - pop.offsetHeight - 6 + "px";
+      setTimeout(() => document.addEventListener("click", function h() { pop.remove(); document.removeEventListener("click", h); }), 0);
+    });
 
     SM.$("#btn-add-layer").addEventListener("click", addLayer);
     SM.$("#object-filter").addEventListener("input", renderObjects);

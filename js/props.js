@@ -103,6 +103,8 @@
           <li><kbd>Shift</kbd>+click or <kbd>Shift</kbd>+drag to select several objects.</li>
           <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> undo / redo, <kbd>Del</kbd> deletes, <kbd>Ctrl</kbd>+<kbd>D</kbd> duplicates, <kbd>Esc</kbd> cancels.</li>
           <li><b>Pictures, site plans, AutoCAD and Shapefiles:</b> click <b>Add</b> under “Pictures &amp; plans”, drag files onto the map, or paste a screenshot with <kbd>Ctrl</kbd>+<kbd>V</kbd>.</li>
+          <li><b>Remove part of a drawing:</b> <kbd>S</kbd> Select area — drag a box or lasso, then <i>Delete objects</i>, <i>Cut out area</i> (trims at the edge) or <i>Keep only area</i>.</li>
+          <li><b>Rotate the map:</b> compass button, or <kbd>[</kbd> <kbd>]</kbd> (5°), <kbd>N</kbd> north up.</li>
           <li>Tools: <kbd>V</kbd> select <kbd>G</kbd> move <kbd>E</kbd> edit <kbd>F</kbd> pen <kbd>L</kbd> line <kbd>P</kbd> polygon <kbd>R</kbd> rectangle <kbd>C</kbd> circle <kbd>M</kbd> marker <kbd>T</kbd> text <kbd>A</kbd> arrow <kbd>D</kbd> measure.</li>
         </ul>` })));
   }
@@ -121,6 +123,9 @@
       row("Layer", layerSel),
       !editable ? SM.el("div", { class: "warn-box", text: p.locked ? "This object is locked. Unlock it to move or edit it." : "Its layer is locked. Unlock the layer to edit." }) : null));
 
+    // --- measurements (right under the name, where people look first) ---
+    el.append(SM.el("div", { class: "pgroup", id: "meas-group" }));
+    refreshMeasurements();
     // --- style ---
     if (kind === "marker") {
       el.append(group("Marker", row("Colour", color(p.style.color, (v) => upd(ids, "color", (x) => { x.properties.style.color = v; })))));
@@ -147,9 +152,6 @@
 
     // --- label ---
     el.append(labelGroup(f, ids));
-    // --- measurements ---
-    el.append(SM.el("div", { class: "pgroup", id: "meas-group" }));
-    refreshMeasurements();
     // --- coordinates ---
     el.append(coordsGroup(f, editable));
     // --- actions ---
@@ -211,14 +213,20 @@
     const box = SM.$("#meas-group");
     if (!box) return;
     box.innerHTML = "";
+    const hasArea = m.area_m2 !== undefined, hasLen = m.length_m !== undefined || m.radius_m !== undefined || m.perimeter_m !== undefined;
     box.append(SM.el("h4", { text: "Measurements" }));
+    if (hasLen || hasArea) box.append(SM.el("div", { class: "unit-row" }, SM.el("span", { class: "muted", text: "Units" }), hasLen ? SM.unitSelect("length") : null, hasArea ? SM.unitSelect("area") : null));
     const wrap = SM.el("div", { class: "meas" });
+    // main value in the chosen unit, then the same value in the other units
+    const others = (val, list, fmt, skip) => list.filter(([u]) => !u.startsWith("auto") && u !== skip).map(([u]) => mline("", fmt(val, u)));
     if (m.length_m !== undefined) {
-      wrap.append(mline("Length", SM.fmtLength(m.length_m, "m")), mline("", SM.fmtLength(m.length_m, "km")), mline("", SM.fmtLength(m.length_m, "ft")));
+      wrap.append(SM.el("div", { class: "mline main" }, SM.el("span", { text: "Length" }), SM.el("b", { text: SM.fmtLength(m.length_m) })),
+        ...others(m.length_m, SM.LENGTH_UNITS, SM.fmtLength, SM.settings.lengthUnit));
     }
     if (m.radius_m !== undefined) wrap.append(mline("Radius", SM.fmtLength(m.radius_m)), mline("Diameter", SM.fmtLength(m.radius_m * 2)));
     if (m.area_m2 !== undefined) {
-      wrap.append(mline("Area", SM.fmtArea(m.area_m2, "m2")), mline("", SM.fmtArea(m.area_m2, "ha")), mline("", SM.fmtArea(m.area_m2, "acre")), mline("", SM.fmtArea(m.area_m2, "km2")));
+      wrap.append(SM.el("div", { class: "mline main" }, SM.el("span", { text: "Area" }), SM.el("b", { text: SM.fmtArea(m.area_m2) })),
+        ...others(m.area_m2, SM.AREA_UNITS, SM.fmtArea, SM.settings.areaUnit));
       if (m.perimeter_m !== undefined) wrap.append(mline("Perimeter", SM.fmtLength(m.perimeter_m)));
     }
     if (m.center) wrap.append(mline(f.properties.kind === "circle" ? "Centre" : "Position", SM.fmtLatLng(m.center[1], m.center[0], "dd")));

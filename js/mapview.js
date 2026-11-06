@@ -17,6 +17,7 @@
       worldCopyJump: true, preferCanvas: false, tapTolerance: 18,
     });
     SM.map = map;
+    initRotation(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     L.control.scale({ position: "bottomleft", metric: true, imperial: true, maxWidth: 160 }).addTo(map);
     map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
@@ -42,8 +43,12 @@
     updateView();
     map.on("moveend", SM.debounce(() => {
       const p = SM.state.project;
-      if (p) { p.viewport = { center: [map.getCenter().lat, map.getCenter().lng], zoom: map.getZoom() }; }
+      if (p) p.viewport = mv.viewport();
     }, 300));
+    // Leaflet's own controls live outside the map element so they never rotate with it
+    const ctl = SM.el("div", { class: "leaflet-container sm-ctl-layer" });
+    ctl.append(map._controlContainer);
+    SM.$("#map-wrap").append(ctl);
 
     // ---- map controls ----
     SM.$("#btn-fit").addEventListener("click", mv.fitAll);
@@ -51,10 +56,110 @@
     SM.$("#btn-fullscreen").addEventListener("click", toggleFullscreen);
     SM.$("#btn-locate").addEventListener("click", locate);
     SM.$("#btn-goto").addEventListener("click", mv.gotoDialog);
+    initCompass();
+    window.addEventListener("resize", SM.debounce(() => { if (mv.bearing) mv.setBearing(mv.bearing); }, 200));
     document.addEventListener("fullscreenchange", () => setTimeout(() => map.invalidateSize(), 100));
     initSearch();
     return map;
   };
+
+  /* ---------------- map rotation ----------------
+     Leaflet cannot rotate, so the whole map element is turned with CSS. When
+     rotated it is enlarged to the diagonal of the visible area (so no corners
+     are empty) and mouse positions / drag distances are turned back before
+     Leaflet sees them. Labels, pins and popups counter-rotate to stay upright. */
+  mv.bearing = 0;
+  mv.bearingRad = 0;
+  // Dragging (map pan, vertex handles, markers): turn the mouse movement back.
+  // Installed before any map exists, because Leaflet binds _onDown when dragging is enabled.
+  if (!L.Draggable.prototype._smPatched) {
+    L.Draggable.prototype._smPatched = true;
+    const down = L.Draggable.prototype._onDown, move = L.Draggable.prototype._onMove;
+    L.Draggable.prototype._onDown = function (e) {
+      down.call(this, e);
+      this._smRot = SM.map && mv.bearing && SM.map.getContainer().contains(this._element) ? mv.bearingRad : 0;
+      if (this._smRot) this._parentScale = { x: 1, y: 1 };
+    };
+    L.Draggable.prototype._onMove = function (e) {
+      if (!this._smRot || !this._startPoint || (e.touches && e.touches.length > 1)) return move.call(this, e);
+      const first = e.touches && e.touches.length === 1 ? e.touches[0] : e;
+      const dx = first.clientX - this._startPoint.x, dy = first.clientY - this._startPoint.y;
+      const c = Math.cos(this._smRot), s = Math.sin(this._smRot);
+      const fake = { clientX: this._startPoint.x + c * dx + s * dy, clientY: this._startPoint.y - s * dx + c * dy, target: e.target, srcElement: e.srcElement, type: e.type, preventDefault: () => e.preventDefault() };
+      return move.call(this, fake);
+    };
+  }
+  mv.viewport = () => ({ center: [SM.map.getCenter().lat, SM.map.getCenter().lng], zoom: SM.map.getZoom(), bearing: mv.bearing });
+  function unrotate(clientX, clientY, el) {
+    const r = el.getBoundingClientRect(), c = Math.cos(mv.bearingRad), s = Math.sin(mv.bearingRad);
+    const dx = clientX - (r.left + r.width / 2), dy = clientY - (r.top + r.height / 2);
+    return L.point(c * dx + s * dy + el.offsetWidth / 2, -s * dx + c * dy + el.offsetHeight / 2);
+  }
+  function initRotation(map) {
+    const orig = map.mouseEventToContainerPoint;
+    map.mouseEventToContainerPoint = function (e) {
+      return mv.bearing ? unrotate(e.clientX, e.clientY, this._container) : orig.call(this, e);
+    };
+  }
+  /** Rotate the map (degrees clockwise; 0 = north up). */
+  mv.setBearing = function (deg, save) {
+    deg = Math.round(((((+deg || 0) % 360) + 540) % 360 - 180) * 10) / 10;
+    if (Math.abs(deg) < 0.05) deg = 0;
+    const el = SM.$("#map"), wrap = SM.$("#map-wrap"), map = SM.map;
+    const center = map.getCenter(), zoom = map.getZoom();
+    if (!deg) {
+      Object.assign(el.style, { left: "", top: "", width: "", height: "", right: "", bottom: "", transform: "" });
+    } else {
+      const W = wrap.clientWidth, H = wrap.clientHeight, D = Math.ceil(Math.hypot(W, H)) + 4;
+      Object.assign(el.style, { left: (W - D) / 2 + "px", top: (H - D) / 2 + "px", width: D + "px", height: D + "px", right: "auto", bottom: "auto", transform: `rotate(${deg}deg)` });
+    }
+    el.style.setProperty("--map-rot", deg + "deg");
+    mv.bearing = deg;
+    mv.bearingRad = (deg * Math.PI) / 180;
+    map.invalidateSize({ animate: false, pan: false });
+    map.setView(center, zoom, { animate: false });
+    const needle = SM.$("#compass-needle");
+    if (needle) needle.style.transform = `rotate(${deg}deg)`;
+    SM.$("#btn-compass") && SM.$("#btn-compass").classList.toggle("on", !!deg);
+    if (SM.$("#rot-input")) { SM.$("#rot-input").value = deg; SM.$("#rot-range").value = deg; }
+    if (save && SM.state.project) { SM.state.project.viewport = mv.viewport(); SM.store.markDirty(); }
+    SM.bus.emit("bearing", deg);
+  };
+  /** Padding that keeps a fitted area inside the visible (unrotated) window. */
+  mv.fitPadding = function () {
+    if (!mv.bearing) return [60, 60];
+    const wrap = SM.$("#map-wrap"), D = SM.map.getSize().x, s = Math.min(wrap.clientWidth, wrap.clientHeight) * 0.68;
+    const p = Math.max(40, (D - s) / 2);
+    return [p, p];
+  };
+  function initCompass() {
+    const btn = SM.$("#btn-compass"), pop = SM.$("#rot-pop");
+    btn.addEventListener("click", (e) => { e.stopPropagation(); pop.classList.toggle("open"); if (pop.classList.contains("open")) { const r = btn.getBoundingClientRect(); pop.style.top = r.bottom + 6 + "px"; pop.style.left = Math.max(8, r.right - pop.offsetWidth) + "px"; } });
+    pop.addEventListener("click", (e) => e.stopPropagation());
+    document.addEventListener("click", () => pop.classList.remove("open"));
+    const range = SM.$("#rot-range"), inp = SM.$("#rot-input");
+    range.addEventListener("input", () => mv.setBearing(+range.value, true));
+    inp.addEventListener("change", () => mv.setBearing(+inp.value, true));
+    SM.$$("#rot-pop [data-rot]").forEach((b) => b.addEventListener("click", () => {
+      const v = b.dataset.rot;
+      mv.setBearing(v === "0" ? 0 : mv.bearing + +v, true);
+    }));
+    SM.$("#rot-align").addEventListener("click", () => {
+      const f = SM.store.selected().find((x) => x.geometry.type !== "Point");
+      if (!f) { SM.toast("First select a line or shape (e.g. the site boundary or a road)"); return; }
+      const c = f.geometry.type === "Polygon" ? f.geometry.coordinates[0] : f.geometry.coordinates;
+      // longest segment becomes horizontal on screen
+      let best = 0, a = c[0], b = c[1];
+      for (let i = 1; i < c.length; i++) { const d = SM.geo.distance(c[i - 1], c[i]); if (d > best) { best = d; a = c[i - 1]; b = c[i]; } }
+      const pa = SM.xf.toMerc(a[1], a[0]), pb = SM.xf.toMerc(b[1], b[0]);
+      let ang = (-Math.atan2(pb[1] - pa[1], pb[0] - pa[0]) * 180) / Math.PI; // screen angle of the segment, clockwise
+      let rot = -ang;
+      while (rot > 90) rot -= 180;
+      while (rot < -90) rot += 180;
+      mv.setBearing(rot, true);
+      SM.toast(`Map turned ${rot.toFixed(1)}° so the selected edge runs left–right`, "", 2500);
+    });
+  }
 
   const wrapLng = (lng) => ((((lng + 180) % 360) + 360) % 360) - 180;
   mv.wrapLng = wrapLng;
@@ -140,7 +245,7 @@
     const b = mv.boundsOf(feats);
     if (!b) return false;
     if (b.getNorthEast().equals(b.getSouthWest())) SM.map.setView(b.getCenter(), Math.max(SM.map.getZoom(), 17));
-    else SM.map.fitBounds(b, { padding: [60, 60], maxZoom: maxZoom || 19 });
+    else SM.map.fitBounds(b, { padding: mv.fitPadding(), maxZoom: maxZoom || 19 });
     return true;
   };
   mv.fitAll = function () {

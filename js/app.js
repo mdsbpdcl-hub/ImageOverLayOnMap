@@ -11,6 +11,7 @@
     SM.render.init();
     SM.overlays.init();
     SM.tools.init();
+    SM.areaops.init();
     SM.panels.init();
     SM.props.init();
     SM.io.init();
@@ -46,12 +47,13 @@
     }
     const p = SM.state.project;
     if (p.viewport && p.viewport.center) SM.map.setView(p.viewport.center, p.viewport.zoom, { animate: false });
+    SM.mapview.setBearing((p.viewport && p.viewport.bearing) || 0);
     SM.mapview.setBasemap(p.basemap || cfg.defaultBasemap);
     if (!SM.state.projectId) SM.store.save({ silent: true });
   }
 
   /* ---------------- keyboard ---------------- */
-  const TOOL_KEYS = { v: "select", g: "move", e: "edit", f: "freehand", l: "polyline", p: "polygon", r: "rectangle", c: "circle", m: "marker", t: "text", a: "arrow", d: "measure", x: "delete" };
+  const TOOL_KEYS = { s: "area", v: "select", g: "move", e: "edit", f: "freehand", l: "polyline", p: "polygon", r: "rectangle", c: "circle", m: "marker", t: "text", a: "arrow", d: "measure", x: "delete" };
   function initShortcuts() {
     document.addEventListener("keydown", (e) => {
       const t = e.target && e.target.tagName ? e.target : document.activeElement || {};
@@ -109,6 +111,8 @@
       }
       if (mod || e.altKey) return;
       if (key === "d" && e.shiftKey) { SM.tools.set("measure-area"); return; }
+      if (key === "[" || key === "]") { SM.mapview.setBearing(SM.mapview.bearing + (key === "]" ? 5 : -5), true); return; }
+      if (key === "n") { SM.mapview.setBearing(0, true); return; }
       if (TOOL_KEYS[key]) SM.tools.set(TOOL_KEYS[key]);
     });
     document.addEventListener("paste", (e) => {

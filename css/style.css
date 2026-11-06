@@ -265,7 +265,18 @@ input[type=color] { width: 34px; height: 28px; border: 1px solid var(--line); bo
 .sm-grid-label { color: #fff; font-size: 10.5px; text-shadow: 0 0 3px #000, 0 0 2px #000; white-space: nowrap; pointer-events: none; }
 .sm-select-box { border: 1.5px dashed var(--accent); background: rgba(31,111,235,.1); position: absolute; z-index: 999; pointer-events: none; }
 .leaflet-container.tool-draw { cursor: crosshair; }
-.leaflet-container.tool-freehand { cursor: crosshair; touch-action: none; }
+.leaflet-container.tool-freehand, .leaflet-container.tool-area { cursor: crosshair; touch-action: none; }
+.tool-area .sm-overlay { pointer-events: none; }
+.tool-area [class*="leaflet-sm-"] .leaflet-interactive { pointer-events: none !important; }
+.hintbar select { border-radius: 999px; border: 0; padding: 3px 8px; color: var(--text); }
+.hintbar .seg { border-color: rgba(255,255,255,.25); }
+.hintbar .seg button { padding: 3px 9px; color: var(--text); background: #fff; }
+.hintbar .seg button.on { color: #fff; background: var(--accent); }
+.hintbar #hint-extra { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
+.hintbar #hint-text { flex-basis: 100%; text-align: center; }
+.tool-area ~ * #hint-text, #hintbar:has(#hint-extra:empty) #hint-text { flex-basis: auto; }
+.hintbar label { display: flex; gap: 4px; align-items: center; }
+.hintbar input[type=checkbox] { width: auto; accent-color: var(--accent); }
 /* while drawing, existing objects let clicks through to the map (snapping still works) */
 .tool-draw [class*="leaflet-sm-"] .leaflet-interactive, .tool-freehand [class*="leaflet-sm-"] .leaflet-interactive { pointer-events: none !important; }
 .leaflet-container.tool-delete .leaflet-interactive { cursor: not-allowed; }
@@ -281,6 +292,39 @@ input[type=color] { width: 34px; height: 28px; border: 1px solid var(--line); bo
   .tb-btn.primary span { display: inline; }
   .project-name { width: 140px; }
 }
+/* ---------------- units ---------------- */
+.unit-pickers { display: inline-flex; gap: 4px; text-transform: none; letter-spacing: 0; }
+.unit-sel { border: 1px solid var(--line); border-radius: 6px; padding: 1px 3px; font-size: 11.5px; color: var(--text); background: #fff; max-width: 118px; }
+.unit-row { display: flex; gap: 6px; align-items: center; margin: -2px 0 6px; }
+.unit-row .unit-sel { flex: 1 1 0; min-width: 0; max-width: none; padding: 3px 4px; }
+.meas .mline.main { font-size: 14px; padding: 4px 0; }
+.meas .mline.main b { color: var(--accent-2); }
+.measure-box .unit-pickers .unit-sel { max-width: 110px; }
+#st-units { cursor: pointer; color: var(--accent-2); }
+#st-units:hover { text-decoration: underline; }
+.units-pop { width: 260px; padding: 10px 12px; display: grid; gap: 4px; }
+
+/* ---------------- map rotation ---------------- */
+#map-wrap { overflow: hidden; }
+#map { --map-rot: 0deg; }
+.sm-ctl-layer { position: absolute; inset: 0; background: transparent !important; pointer-events: none; z-index: 900; overflow: visible; outline: none; }
+/* labels, pins and popups stay upright while the map turns */
+.sm-text-inner, .sm-measure-label { transform-origin: 0 0; rotate: calc(-1 * var(--map-rot)); }
+.sm-pin svg { transform-origin: 15px 37px; rotate: calc(-1 * var(--map-rot)); }
+.leaflet-tooltip.sm-label { rotate: calc(-1 * var(--map-rot)); }
+.leaflet-tooltip-bottom.sm-label { transform-origin: 50% 0; }
+.leaflet-popup { rotate: calc(-1 * var(--map-rot)); transform-origin: 50% 100%; }
+.sm-grid-label { rotate: calc(-1 * var(--map-rot)); }
+.rot-pop { width: 290px; padding: 10px 12px; }
+.rot-pop .rot-head { font-size: 12px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+.rot-pop .rot-row { display: flex; gap: 5px; align-items: center; margin-bottom: 8px; }
+.rot-pop .rot-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.rot-pop .rot-row input[type=number] { width: 64px; border: 1px solid var(--line); border-radius: 7px; padding: 4px 6px; }
+.rot-pop .mini-btn { width: auto; padding: 4px 7px; }
+.rot-pop .mini-btn svg { width: 13px; height: 13px; }
+#btn-compass.on { background: var(--panel); color: inherit; box-shadow: 0 0 0 2px var(--accent), var(--shadow); }
+#compass-needle { width: 20px; height: 20px; }
+
 /* ---------------- pictures & CAD overlays ---------------- */
 .sm-overlay { pointer-events: auto; user-select: none; -webkit-user-drag: none; touch-action: none; image-rendering: auto; }
 .sm-overlay.locked, .tool-draw .sm-overlay, .tool-freehand .sm-overlay, .sm-aligning .sm-overlay, .tool-delete .sm-overlay { pointer-events: none; }
@@ -325,7 +369,7 @@ input[type=color] { width: 34px; height: 28px; border: 1px solid var(--line); bo
   .map-controls { flex-direction: column; align-items: flex-end; }
   #basemap-label { display: none; }
   .hintbar { top: auto; bottom: 64px; max-width: calc(100% - 16px); border-radius: 14px; }
-  #statusbar .st:not(#st-coords):not(#st-scale) { display: none; }
+  #statusbar .st:not(#st-coords):not(#st-scale):not(#st-units) { display: none; }
   .form-grid { grid-template-columns: 1fr; }
 }
 @media print { body { display: none; } }

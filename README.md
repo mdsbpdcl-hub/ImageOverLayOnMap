@@ -70,6 +70,51 @@ IIS, nginx) — it is just static files.
 
 ---
 
+## Removing part of a drawing (Select area)
+
+Choose **Select area** on the toolbar (the dashed box with scissors) or press
+**S**. Hold the mouse button and drag a **Box**, or switch to **Lasso** and
+draw around the part. Objects *touching the area* (or only those *fully
+inside*) are selected; tick *active layer only* to limit it to one layer.
+Then choose:
+
+* **Delete objects** — removes the selected objects completely.
+* **Cut out area** — like scissors: everything inside the area disappears;
+  lines, polygons and circles crossing the edge are cut exactly at the edge
+  and the outside parts stay.
+* **Keep only area** — the opposite (crop): everything outside goes.
+
+Locked objects and hidden layers are never touched. One **Ctrl+Z** undoes the
+whole operation. The selected objects can also be restyled or moved to another
+layer from the right panel.
+
+## Measurement units
+
+Click **Units** in the status bar (bottom), use the unit boxes in the
+*Measurements* panel or the measure tool, or open ⚙ Settings.
+
+* Length: Auto (m / km), metres, kilometres, feet, yards, miles, Auto (ft / mi)
+* Area: Auto (m² / ha / km²), m², hectares, km², acres, **decimal (dismil)**,
+  square feet, **square yards (gaj)**
+
+The chosen unit is shown first in the panel, followed by the same value in
+every other unit. Map labels, the measure tool, PNG/PDF annotations and the
+scale bar follow it (feet/miles for imperial lengths). Exact definitions:
+1 ft = 0.3048 m, 1 acre = 4046.8564224 m², 1 decimal = 1/100 acre,
+1 gaj = 1 yd² = 0.83612736 m². Exported files (KML, Shapefile) always store
+metres and m².
+
+## Rotating the map
+
+Click the **compass** button (top right) to turn the map: slider, exact angle,
+±1° / ±15° buttons, **North up**, and **Line up with selected road /
+boundary**, which turns the map so the selected line runs left–right. Keys:
+**[** and **]** turn 5°, **N** resets. Drawing, editing, measuring, Select area
+and picture placement all work on a turned map; labels stay upright. The angle
+is saved with the project, and PNG/PDF exports can be *turned like the screen*
+with the north arrow pointing to true north (KML, GeoJSON and Shapefile are
+unaffected — coordinates never change).
+
 ## Pictures, screenshots and site plans
 
 Add a picture with **Pictures & plans → Add**, by dragging the file onto the
@@ -134,7 +179,7 @@ Practice files are in `examples/`: `site_plan_local_metres.dxf`,
 
 ---
 
-Keyboard: V select · G move · E edit · F pen · L line · P polygon · R
+Keyboard: S select area · [ ] rotate map · N north up · V select · G move · E edit · F pen · L line · P polygon · R
 rectangle · C circle · M marker · T text · A arrow · D measure · Del delete ·
 Ctrl+Z/Y undo/redo · Ctrl+D duplicate · Ctrl+S save · Esc cancel.
 

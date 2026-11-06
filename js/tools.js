@@ -9,7 +9,7 @@
   SM.tools = T;
 
   const DRAW_SHAPES = { polyline: "Line", arrow: "Line", polygon: "Polygon", rectangle: "Rectangle", circle: "Circle" };
-  const LABELS = { select: "Select", move: "Move", edit: "Edit vertices", freehand: "Freehand", polyline: "Polyline", polygon: "Polygon", rectangle: "Rectangle", circle: "Circle", marker: "Marker", text: "Text", arrow: "Arrow", measure: "Measure distance", "measure-area": "Measure area", delete: "Delete" };
+  const LABELS = { select: "Select", move: "Move", edit: "Edit vertices", freehand: "Freehand", polyline: "Polyline", polygon: "Polygon", rectangle: "Rectangle", circle: "Circle", marker: "Marker", text: "Text", arrow: "Arrow", measure: "Measure distance", "measure-area": "Measure area", delete: "Delete", area: "Select area" };
   const HINTS = {
     select: null, move: null, edit: null,
     freehand: "Press and drag to draw · release to finish",
@@ -58,7 +58,8 @@
     c.classList.toggle("tool-draw", ["polyline", "polygon", "rectangle", "circle", "marker", "text", "arrow", "measure", "measure-area"].includes(tool));
     c.classList.toggle("tool-freehand", tool === "freehand");
     c.classList.toggle("tool-delete", tool === "delete");
-    if (tool === "freehand") map.dragging.disable(); else map.dragging.enable();
+    c.classList.toggle("tool-area", tool === "area");
+    if (tool === "freehand" || tool === "area") map.dragging.disable(); else map.dragging.enable();
     const drawing = !!DRAW_SHAPES[tool] || tool.startsWith("measure");
     if (drawing) map.doubleClickZoom.disable(); else map.doubleClickZoom.enable();
 
@@ -328,27 +329,33 @@
       pts.forEach((p) => grp.addLayer(L.circleMarker(p, { radius: 4, color: "#00e5ff", fillColor: "#fff", fillOpacity: 1, weight: 2, interactive: false, pmIgnore: true })));
       render();
     }
-    let refined = null;
+    let lastExact = null;
+    SM.bus.on("settings", () => { if (!box.classList.contains("hidden")) render(lastExact); });
+    // two handy alternatives to the chosen unit
+    const altLen = () => (SM.imperialLengths() ? ["m", "km"] : ["ft", "yd"]);
+    const altArea = () => ["ha", "acre", "decimal", "m2", "ft2"].filter((u) => u !== SM.settings.areaUnit).slice(0, 3);
     function render(exact) {
+      lastExact = exact || null;
       const c = coords(!done);
       const segs = SM.geo.segments(c);
       const total = segs.reduce((s, x) => s + x, 0);
       let html = `<div class="mrow"><span>${mode === "area" ? "Area measurement" : "Distance"}</span><span class="muted">${pts.length} pts</span></div>`;
       if (mode === "line") {
         html += `<div><b>${SM.fmtLength(exact ? exact.length_m : total)}</b></div>`;
-        html += `<div class="mrow muted"><span>${SM.fmtLength(exact ? exact.length_m : total, "m")}</span><span>${SM.fmtLength(exact ? exact.length_m : total, "ft")}</span></div>`;
+        html += `<div class="mrow muted">${altLen().map((u) => `<span>${SM.fmtLength(exact ? exact.length_m : total, u)}</span>`).join("")}</div>`;
         if (segs.length) html += `<div class="muted">Last segment: ${SM.fmtLength(segs[segs.length - 1])}</div>`;
       } else {
         const ring = c.length >= 3 ? [...c, c[0]] : null;
         const area = exact ? exact.area_m2 : ring ? SM.geo.polygonArea([ring]) : 0;
         const per = exact ? exact.perimeter_m : ring ? SM.geo.lineLength(ring) : total;
         html += `<div><b>${SM.fmtArea(area)}</b></div>`;
-        html += `<div class="mrow muted"><span>${SM.fmtArea(area, "ha")}</span><span>${SM.fmtArea(area, "acre")}</span></div>`;
+        html += `<div class="mrow muted">${altArea().map((u) => `<span>${SM.fmtArea(area, u)}</span>`).join("")}</div>`;
         html += `<div class="muted">Perimeter: ${SM.fmtLength(per)}</div>`;
       }
       if (exact) html += `<div class="muted" style="font-size:11px">WGS84 ellipsoid (geodesic)</div>`;
       html += `<div class="mactions">${done ? `<button class="mini-btn primary" id="m-save">Save as ${mode === "area" ? "polygon" : "line"}</button>` : ""}<button class="mini-btn" id="m-clear">Clear</button></div>`;
       box.innerHTML = html;
+      box.querySelector(".mrow").append(SM.el("span", { class: "unit-pickers" }, mode === "area" ? SM.unitSelect("area") : SM.unitSelect("length")));
       const sv = SM.$("#m-save");
       if (sv) sv.onclick = () => {
         const cc = coords(false);

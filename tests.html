@@ -37,6 +37,7 @@
 <script src="js/gis.js"></script>
 <script src="js/shp.js"></script>
 <script src="js/cad.js"></script>
+<script src="js/areaops.js"></script>
 <script>
 "use strict";
 const results = [];
@@ -272,6 +273,22 @@ test("DXF: lines, circle, block and text are read", () => {
   assert(model.insunits === 6);
 });
 test("MText formatting codes are cleaned", () => assert(SM.cad.cleanMText("{\\fArial|b1;STAGE}\\PAREA %%c20") === "STAGE\nAREA Ø20"));
+
+/* ---------- cutting by area ---------- */
+const AREA = turf.polygon([[[1, 0], [2, 0], [2, 1], [1, 1], [1, 0]]]);
+const feat = (type, coordinates, kind, extra) => ({ type: "Feature", geometry: { type, coordinates }, properties: Object.assign({ kind, style: {}, label: {} }, extra || {}) });
+test("Cut out: a line crossing the area is split exactly at both edges", () => {
+  const r = SM.areaops._test.clip(feat("LineString", [[0, 0.5], [3, 0.5]], "polyline"), AREA, "erase");
+  assert(r.length === 2 && r[0].coordinates[1][0] === 1 && r[1].coordinates[0][0] === 2, JSON.stringify(r));
+});
+test("Keep only area: polygon cropped to the overlap", () => {
+  const r = SM.areaops._test.clip(feat("Polygon", [[[0, 0], [1.5, 0], [1.5, 1], [0, 1], [0, 0]]], "polygon"), AREA, "keep");
+  assert(r.length === 1 && Math.abs(turf.area(turf.polygon(r[0].coordinates)) / turf.area(turf.polygon([[[1, 0], [1.5, 0], [1.5, 1], [1, 1], [1, 0]]])) - 1) < 1e-9);
+});
+test("Cut out: points inside are removed, outside untouched", () => {
+  assert(SM.areaops._test.clip(feat("Point", [1.5, 0.5], "marker"), AREA, "erase").length === 0);
+  assert(SM.areaops._test.clip(feat("Point", [5, 5], "marker"), AREA, "erase") === null);
+});
 
 /* ---------- report ---------- */
 const failed = results.filter((r) => !r.ok);

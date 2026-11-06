@@ -282,7 +282,7 @@
     state.saving = true;
     SM.bus.emit("savestate");
     const p = state.project;
-    if (SM.map) p.viewport = { center: [SM.map.getCenter().lat, SM.map.getCenter().lng], zoom: SM.map.getZoom() };
+    if (SM.map) p.viewport = SM.mapview.viewport();
     try {
       if (state.projectId) {
         await SM.api.updateProject(state.projectId, p.name, p);

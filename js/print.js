@@ -55,7 +55,29 @@
    * opts: center {lat,lng}, zoom (fractional), width, height (px), k (style scale),
    *       basemap (provider) or null, features, measure (bool), grid (bool), onProgress
    */
+  let LR = 0; // label rotation (radians) so text stays upright on a rotated print
+
+  /** Render; opts.rotation (degrees clockwise) turns the map like the screen. */
   PR.renderCanvas = async function (opts) {
+    const rot = ((opts.rotation || 0) * Math.PI) / 180;
+    if (!rot) { LR = 0; return renderNorthUp(opts); }
+    const W = Math.round(opts.width), H = Math.round(opts.height), c = Math.abs(Math.cos(rot)), s = Math.abs(Math.sin(rot));
+    const W2 = Math.ceil(W * c + H * s) + 2, H2 = Math.ceil(W * s + H * c) + 2;
+    LR = -rot;
+    const big = await renderNorthUp(Object.assign({}, opts, { width: W2, height: H2 }));
+    LR = 0;
+    const cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = opts.basemap ? "#20242c" : "#ffffff"; ctx.fillRect(0, 0, W, H);
+    ctx.translate(W / 2, H / 2); ctx.rotate(rot); ctx.drawImage(big.canvas, -W2 / 2, -H2 / 2);
+    const cr = Math.cos(rot), sr = Math.sin(rot);
+    return Object.assign({}, big, {
+      canvas: cv,
+      toLatLng: (x, y) => { const dx = x - W / 2, dy = y - H / 2; return big.toLatLng(cr * dx + sr * dy + W2 / 2, -sr * dx + cr * dy + H2 / 2); },
+    });
+  };
+  async function renderNorthUp(opts) {
     const { center, zoom: z, width: w, height: h, k } = opts;
     const cv = document.createElement("canvas");
     cv.width = Math.round(w); cv.height = Math.round(h);
@@ -93,7 +115,7 @@
     if (opts.measure) (opts.features || []).forEach((f) => { try { drawMeasure(ctx, f, toPx, k); } catch (e) { /* skip */ } });
 
     return {
-      canvas: cv, failed, total,
+      canvas: cv, failed, total, labelRot: LR,
       mpp: mppAt(center.lat, z),
       toLatLng: (x, y) => ({ lat: unY(y + oy, z), lng: unX(x + ox, z) }),
     };
@@ -109,9 +131,12 @@
   const lum = (hex) => { const h = (hex || "#fff").replace("#", ""); return (0.2126 * parseInt(h.slice(0, 2), 16) + 0.7152 * parseInt(h.slice(2, 4), 16) + 0.0722 * parseInt(h.slice(4, 6), 16)) / 255; };
   const PIN = typeof Path2D !== "undefined" ? new Path2D("M15 37C15 37 28 23.5 28 14A13 13 0 0 0 2 14C2 23.5 15 37 15 37Z") : null;
 
-  function drawText(ctx, text, x, y, lab, k, align, baseline) {
+  /** Text at anchor (x, y), shifted by (ox, oy) in upright page space. */
+  function drawText(ctx, text, x, y, lab, k, align, baseline, ox, oy) {
     if (!text) return;
     ctx.save();
+    ctx.translate(x, y); ctx.rotate(LR);
+    x = ox || 0; y = oy || 0;
     ctx.font = `${lab.italic ? "italic " : ""}${lab.bold ? "700" : "500"} ${lab.size * k}px Outfit, "Segoe UI", Arial, sans-serif`;
     ctx.textAlign = align || lab.align || "center";
     ctx.textBaseline = baseline || "middle";
@@ -131,18 +156,18 @@
     ctx.lineJoin = "round"; ctx.lineCap = "round";
     if (kind === "marker") {
       const [x, y] = toPx(g.coordinates);
-      ctx.translate(x - 15 * k, y - 37 * k); ctx.scale(k, k);
+      ctx.translate(x, y); ctx.rotate(LR); ctx.translate(-15 * k, -37 * k); ctx.scale(k, k);
       ctx.shadowColor = "rgba(0,0,0,.45)"; ctx.shadowBlur = 3;
       ctx.fillStyle = s.color; ctx.fill(PIN); ctx.shadowBlur = 0;
       ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke(PIN);
       ctx.beginPath(); ctx.arc(15, 14, 5, 0, 2 * Math.PI); ctx.fillStyle = "#fff"; ctx.fill();
       ctx.restore();
-      if (p.label.show) { const off = p.label.offset || [0, 0]; drawText(ctx, p.label.text || p.name, x + off[0] * k, y + (6 + off[1]) * k, p.label, k, "center", "top"); }
+      if (p.label.show) { const off = p.label.offset || [0, 0]; drawText(ctx, p.label.text || p.name, x, y, p.label, k, "center", "top", off[0] * k, (6 + off[1]) * k); }
       return;
     }
     if (kind === "text") {
       const [x, y] = toPx(g.coordinates), off = p.label.offset || [0, 0];
-      drawText(ctx, p.label.text, x + off[0] * k, y + off[1] * k, p.label, k);
+      drawText(ctx, p.label.text, x, y, p.label, k, undefined, undefined, off[0] * k, off[1] * k);
       ctx.restore();
       return;
     }
@@ -175,12 +200,14 @@
       else if (rings) { const ps = rings[0].map(toPx); c = [ps.reduce((a, q) => a + q[0], 0) / ps.length, ps.reduce((a, q) => a + q[1], 0) / ps.length]; }
       else { const ps = g.coordinates.map(toPx); c = ps[Math.floor(ps.length / 2)]; if (ps.length === 2) c = [(ps[0][0] + ps[1][0]) / 2, (ps[0][1] + ps[1][1]) / 2]; }
       const off = p.label.offset || [0, 0];
-      drawText(ctx, p.label.text || p.name, c[0] + off[0] * k, c[1] + off[1] * k, p.label, k, "center");
+      drawText(ctx, p.label.text || p.name, c[0], c[1], p.label, k, "center", undefined, off[0] * k, off[1] * k);
     }
   }
 
-  function badge(ctx, text, x, y, k) {
+  function badge(ctx, text, x, y, k, ox, oy) {
     ctx.save();
+    ctx.translate(x, y); ctx.rotate(LR);
+    x = ox || 0; y = oy || 0;
     ctx.font = `600 ${11 * k}px Outfit, "Segoe UI", Arial, sans-serif`;
     const tw = ctx.measureText(text).width, ph = 15 * k, pw = tw + 10 * k;
     ctx.fillStyle = "rgba(29,35,48,.85)";
@@ -191,7 +218,7 @@
   }
   function drawMeasure(ctx, f, toPx, k) {
     const g = f.geometry, kind = f.properties.kind;
-    if (kind === "circle") { const [x, y] = toPx(g.coordinates); badge(ctx, "r " + SM.fmtLength(f.properties.radius), x, y + 14 * k, k); return; }
+    if (kind === "circle") { const [x, y] = toPx(g.coordinates); badge(ctx, "r " + SM.fmtLength(f.properties.radius), x, y, k, 0, 14 * k); return; }
     if (g.type === "Point") return;
     const coords = g.type === "Polygon" ? g.coordinates[0] : g.coordinates;
     const segs = SM.geo.segments(coords);
@@ -204,10 +231,10 @@
     }
     if (g.type === "Polygon") {
       const ps = coords.map(toPx);
-      badge(ctx, SM.fmtArea(SM.geo.polygonArea(g.coordinates)), ps.reduce((s, q) => s + q[0], 0) / ps.length, ps.reduce((s, q) => s + q[1], 0) / ps.length + 16 * k, k);
+      badge(ctx, SM.fmtArea(SM.geo.polygonArea(g.coordinates)), ps.reduce((s, q) => s + q[0], 0) / ps.length, ps.reduce((s, q) => s + q[1], 0) / ps.length, k, 0, 16 * k);
     } else if (segs.length > 1 || kind === "freehand") {
       const e = toPx(coords[coords.length - 1]);
-      badge(ctx, "Total " + SM.fmtLength(segs.reduce((s, x) => s + x, 0)), e[0], e[1] - 16 * k, k);
+      badge(ctx, "Total " + SM.fmtLength(segs.reduce((s, x) => s + x, 0)), e[0], e[1], k, 0, -16 * k);
     }
   }
 
@@ -218,7 +245,7 @@
     ctx.save();
     ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 0.8 * k; ctx.setLineDash([4 * k, 4 * k]);
     ctx.font = `500 ${9.5 * k}px Outfit, "Segoe UI", Arial, sans-serif`;
-    const lbl = (t, x, y, al, bl) => { ctx.save(); ctx.setLineDash([]); ctx.textAlign = al; ctx.textBaseline = bl; ctx.lineWidth = 3 * k; ctx.strokeStyle = "rgba(0,0,0,.85)"; ctx.strokeText(t, x, y); ctx.fillStyle = "#fff"; ctx.fillText(t, x, y); ctx.restore(); };
+    const lbl = (t, x, y, al, bl) => { if (LR) return; ctx.save(); ctx.setLineDash([]); ctx.textAlign = al; ctx.textBaseline = bl; ctx.lineWidth = 3 * k; ctx.strokeStyle = "rgba(0,0,0,.85)"; ctx.strokeText(t, x, y); ctx.fillStyle = "#fff"; ctx.fillText(t, x, y); ctx.restore(); };
     for (let lat = Math.ceil(south / step) * step; lat <= north; lat += step) {
       const y = worldY(lat, z) - oy;
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
@@ -275,6 +302,9 @@
     const [cMeas, lMeas] = cb("Distance / area annotations", false);
     const [cDate, lDate] = cb("Date of export", true);
     const [cSel, lSel] = cb(`Only selected objects (${SM.state.selection.size})`, false);
+    const bearing = SM.mapview.bearing;
+    const [cRot, lRot] = cb(`Turned like the screen (${bearing}°)`, !!bearing);
+    if (!bearing) lRot.classList.add("hidden");
     if (!SM.state.selection.size) cSel.disabled = true;
     const pdfOnly = [];
     const r = (label, ctrl, isPdf) => { const a = SM.el("label", { text: label }); if (isPdf) pdfOnly.push(a, ctrl); return [a, ctrl]; };
@@ -284,7 +314,7 @@
       ...r("Paper", paper, true), ...r("Orientation", orient, true), ...r("Scale", scaleMode, true), ...r("Scale 1:", scaleN, true), ...r("Resolution", dpi, true),
       ...pngOnly,
       SM.el("label", { text: "Include" }),
-      SM.el("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 10px" } }, lBase, lLegend, lNorth, lScale, lGrid, lMeas, lDate, lSel),
+      SM.el("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 10px" } }, lBase, lLegend, lNorth, lScale, lGrid, lMeas, lDate, lSel, lRot),
       SM.el("div", { class: "full muted", text: "Imagery appears in the export when the provider allows browser access (Esri and OpenStreetMap do). Please respect each provider's attribution and terms of use — the attribution is printed automatically." }),
       SM.el("div", { class: "full" }, SM.el("div", { class: "progress hidden", id: "print-progress" }, SM.el("div"))));
     const sync = () => {
@@ -305,6 +335,7 @@
             title: title.value.trim(), subtitle: subtitle.value.trim(),
             basemap: cBase.checked ? base : null, legend: cLegend.checked, north: cNorth.checked, scalebar: cScale.checked,
             grid: cGrid.checked, measure: cMeas.checked, date: cDate.checked, onlySelected: cSel.checked, onProgress,
+            rotation: cRot.checked ? bearing : 0,
           };
           try {
             if (fmt.value === "png") await PR.exportPNG(Object.assign(opt, { mult: +pngSize.value }));
@@ -332,14 +363,21 @@
     for (const m of [5, 2.5, 2, 1]) if (m * p <= maxM) return m * p;
     return p;
   }
+  /** Round scale-bar length (metres) and its label, in metric or feet/miles to match the length unit. */
+  function scaleSpec(maxM) {
+    if (!SM.imperialLengths()) { const L = niceLength(maxM); return { L, label: (f) => lenLabel(L * f) }; }
+    const ft = maxM / 0.3048;
+    if (ft >= 5280 * 0.5) { const mi = niceLength(ft / 5280); return { L: mi * 1609.344, label: (f) => +(mi * f).toFixed(2) + " mi" }; }
+    const n = niceLength(ft); return { L: n * 0.3048, label: (f) => +(n * f).toFixed(1) + " ft" };
+  }
   const lenLabel = (m) => (m >= 1000 ? +(m / 1000).toFixed(2) + " km" : +m.toFixed(1) + " m");
 
   /* ---------------- PNG ---------------- */
   PR.exportPNG = async function (o) {
-    const size = SM.map.getSize(), mult = o.mult || 2;
+    const wrap = SM.$("#map-wrap"), size = { x: wrap.clientWidth, y: wrap.clientHeight }, mult = o.mult || 2;
     const c = SM.map.getCenter();
     const res = await PR.renderCanvas({
-      center: { lat: c.lat, lng: c.lng }, zoom: SM.map.getZoom() + Math.log2(mult),
+      center: { lat: c.lat, lng: c.lng }, zoom: SM.map.getZoom() + Math.log2(mult), rotation: o.rotation || 0,
       width: size.x * mult, height: size.y * mult, k: mult, basemap: o.basemap,
       features: exportFeatures(o.onlySelected), measure: o.measure, grid: o.grid, onProgress: o.onProgress,
     });
@@ -354,14 +392,14 @@
       ctx.font = `400 ${11.5 * k}px Outfit, "Segoe UI", Arial`; ctx.fillStyle = "#555";
       ctx.fillText([o.subtitle, o.date ? new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : ""].filter(Boolean).join(" · "), 26 * k, 54 * k);
     }
-    if (o.north) drawNorthCanvas(ctx, W - 40 * k, 20 * k, k);
+    if (o.north) drawNorthCanvas(ctx, W - 40 * k, 20 * k, k, o.rotation || 0);
     if (o.scalebar) {
-      const L = niceLength(res.mpp * 150 * k), px = L / res.mpp;
+      const sp = scaleSpec(res.mpp * 150 * k), L = sp.L, px = L / res.mpp;
       panel(12 * k, H - 46 * k, px + 30 * k, 34 * k);
       ctx.fillStyle = "#1d2330";
       ctx.fillRect(26 * k, H - 24 * k, px / 2, 5 * k); ctx.strokeStyle = "#1d2330"; ctx.lineWidth = 1 * k; ctx.strokeRect(26 * k, H - 24 * k, px, 5 * k);
       ctx.font = `500 ${10 * k}px Outfit, "Segoe UI", Arial`; ctx.textAlign = "center";
-      ctx.fillText("0", 26 * k, H - 28 * k); ctx.fillText(lenLabel(L), 26 * k + px, H - 28 * k);
+      ctx.fillText("0", 26 * k, H - 28 * k); ctx.fillText(sp.label(1), 26 * k + px, H - 28 * k);
       ctx.textAlign = "left";
     }
     if (o.legend) {
@@ -387,9 +425,10 @@
   };
   function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   function truncate(ctx, t, max) { if (ctx.measureText(t).width <= max) return t; while (t.length > 1 && ctx.measureText(t + "…").width > max) t = t.slice(0, -1); return t + "…"; }
-  function drawNorthCanvas(ctx, x, y, k) {
+  function drawNorthCanvas(ctx, x, y, k, rotDeg) {
     ctx.save();
     ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.beginPath(); ctx.arc(x + 14 * k, y + 22 * k, 20 * k, 0, 2 * Math.PI); ctx.fill();
+    if (rotDeg) { ctx.translate(x + 14 * k, y + 22 * k); ctx.rotate((rotDeg * Math.PI) / 180); ctx.translate(-(x + 14 * k), -(y + 22 * k)); }
     ctx.beginPath(); ctx.moveTo(x + 14 * k, y + 6 * k); ctx.lineTo(x + 22 * k, y + 32 * k); ctx.lineTo(x + 14 * k, y + 26 * k); ctx.closePath(); ctx.fillStyle = "#1d2330"; ctx.fill();
     ctx.beginPath(); ctx.moveTo(x + 14 * k, y + 6 * k); ctx.lineTo(x + 6 * k, y + 32 * k); ctx.lineTo(x + 14 * k, y + 26 * k); ctx.closePath(); ctx.fillStyle = "#9aa3b2"; ctx.fill();
     ctx.fillStyle = "#1d2330"; ctx.font = `700 ${10 * k}px Outfit, Arial`; ctx.textAlign = "center"; ctx.fillText("N", x + 14 * k, y + 40 * k);
@@ -426,20 +465,37 @@
     if (o.scaleMode === "fixed") {
       const c = SM.map.getCenter(); center = { lat: c.lat, lng: c.lng };
       N = Math.max(10, o.scaleN || 1000);
-    } else {
-      let b;
-      if (o.scaleMode === "fitall") { b = SM.mapview.boundsOf(feats); if (!b) throw new Error("There are no objects to fit"); b = b.pad(0.06); }
-      else b = SM.map.getBounds();
-      const cc = b.getCenter(); center = { lat: cc.lat, lng: cc.lng };
-      const bw = Math.max(1e-9, worldX(b.getEast(), 0) - worldX(b.getWest(), 0)), bh = Math.max(1e-9, worldY(b.getSouth(), 0) - worldY(b.getNorth(), 0));
-      const zFit = Math.log2(Math.min(fwPx / bw, fhPx / bh));
+    } else if (o.scaleMode === "fitall") {
+      // fit every object inside the (possibly rotated) frame
+      const pts = [];
+      feats.forEach((f) => {
+        const g = f.geometry, p = f.properties;
+        const add = (c) => pts.push([worldX(c[0], 0), worldY(c[1], 0)]);
+        if (p.kind === "circle") SM.geo.circleRing(g.coordinates, p.radius, 36).forEach(add);
+        else if (g.type === "Point") add(g.coordinates);
+        else if (g.type === "LineString") g.coordinates.forEach(add);
+        else g.coordinates[0].forEach(add);
+      });
+      if (!pts.length) throw new Error("There are no objects to fit");
+      const r = ((o.rotation || 0) * Math.PI) / 180, cr = Math.cos(r), sr = Math.sin(r);
+      const rx = pts.map((q) => cr * q[0] - sr * q[1]), ry = pts.map((q) => sr * q[0] + cr * q[1]);
+      const x0 = Math.min(...rx), x1 = Math.max(...rx), y0 = Math.min(...ry), y1 = Math.max(...ry);
+      const mx = (x0 + x1) / 2, my = (y0 + y1) / 2; // centre back in north-up world pixels
+      const cx = cr * mx + sr * my, cy = -sr * mx + cr * my;
+      center = { lat: unY(cy, 0), lng: unX(cx, 0) };
+      const zFit = Math.log2(Math.min(fwPx / Math.max(1e-9, (x1 - x0) * 1.12), fhPx / Math.max(1e-9, (y1 - y0) * 1.12)));
       N = PR.niceScale(mppAt(center.lat, zFit) * dpi / 0.0254);
+    } else {
+      // fit what is visible on screen now
+      const c = SM.map.getCenter(); center = { lat: c.lat, lng: c.lng };
+      const wrap = SM.$("#map-wrap"), m = SM.mapview.metersPerPixel();
+      N = PR.niceScale(Math.max((wrap.clientWidth * m) / (frame.w / 1000), (wrap.clientHeight * m) / (frame.h / 1000)));
     }
     const mpp = (N * 0.0254) / dpi;       // ground metres per output pixel
     const zoom = zoomForMpp(center.lat, mpp);
     if (zoom > 23) throw new Error("Scale too large for the imagery — choose a smaller scale (bigger N)");
 
-    const res = await PR.renderCanvas({ center, zoom, width: fwPx, height: fhPx, k: dpi / 96, basemap: o.basemap, features: feats, measure: o.measure, grid: o.grid, onProgress: o.onProgress });
+    const res = await PR.renderCanvas({ center, zoom, rotation: o.rotation || 0, width: fwPx, height: fhPx, k: dpi / 96, basemap: o.basemap, features: feats, measure: o.measure, grid: o.grid, onProgress: o.onProgress });
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: land ? "landscape" : "portrait", unit: "mm", format: o.paper.toLowerCase(), compress: true });
@@ -483,7 +539,7 @@
     // scale bar + north arrow (third column)
     const sx = M + colW * 2 + 2;
     if (o.scalebar) {
-      const maxMm = colW - 20, L = niceLength((maxMm / 1000) * N), barMm = (L / N) * 1000;
+      const maxMm = colW - 20, sp = scaleSpec((maxMm / 1000) * N), L = sp.L, barMm = (L / N) * 1000;
       doc.setFontSize(7.5); doc.setTextColor(29, 35, 48); doc.setFont("helvetica", "bold");
       doc.text(`Scale 1:${Math.round(N).toLocaleString("en-IN")}`, sx, fy + 2);
       doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(90);
@@ -496,14 +552,18 @@
       }
       doc.setFontSize(6.5); doc.setTextColor(29, 35, 48);
       doc.text("0", sx, by + 5, { align: "center" });
-      doc.text(lenLabel(L / 2), sx + barMm / 2, by + 5, { align: "center" });
-      doc.text(lenLabel(L), sx + barMm, by + 5, { align: "center" });
+      doc.text(sp.label(0.5), sx + barMm / 2, by + 5, { align: "center" });
+      doc.text(sp.label(1), sx + barMm, by + 5, { align: "center" });
     }
     if (o.north) {
-      const nx = M + colW * 3 - 9, ny = fy + 1;
-      doc.setFillColor(29, 35, 48); doc.triangle(nx, ny, nx + 3.5, ny + 11, nx, ny + 8.5, "F");
-      doc.setFillColor(154, 163, 178); doc.triangle(nx, ny, nx - 3.5, ny + 11, nx, ny + 8.5, "F");
-      doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(29, 35, 48); doc.text("N", nx, ny + 15.5, { align: "center" });
+      const nx = M + colW * 3 - 9, ny = fy + 1, ncx = nx, ncy = ny + 7;
+      const r = ((o.rotation || 0) * Math.PI) / 180, R = (px, py) => [ncx + (px - ncx) * Math.cos(r) - (py - ncy) * Math.sin(r), ncy + (px - ncx) * Math.sin(r) + (py - ncy) * Math.cos(r)];
+      const tri = (a, b, c) => doc.triangle(...R(...a), ...R(...b), ...R(...c), "F");
+      doc.setFillColor(29, 35, 48); tri([nx, ny], [nx + 3.5, ny + 11], [nx, ny + 8.5]);
+      doc.setFillColor(154, 163, 178); tri([nx, ny], [nx - 3.5, ny + 11], [nx, ny + 8.5]);
+      const [tx, ty] = R(nx, ny - 2.2);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(29, 35, 48); doc.text("N", tx, ty + 1, { align: "center" });
+      if (r) { doc.setFont("helvetica", "normal"); doc.setFontSize(6); doc.setTextColor(90); doc.text(`Map turned ${(+o.rotation).toFixed(1)}°`, nx, ny + 17.5, { align: "center" }); }
     }
     // info column
     const ix = M + colW * 3 + 2;
@@ -511,8 +571,8 @@
     const cLat = center.lat.toFixed(6), cLng = SM.mapview.wrapLng(center.lng).toFixed(6);
     const info = [
       `Centre: ${cLat}°, ${cLng}°`,
-      `NW: ${nw.lat.toFixed(5)}°, ${SM.mapview.wrapLng(nw.lng).toFixed(5)}°`,
-      `SE: ${se.lat.toFixed(5)}°, ${SM.mapview.wrapLng(se.lng).toFixed(5)}°`,
+      `${o.rotation ? "Top-left" : "NW"}: ${nw.lat.toFixed(5)}°, ${SM.mapview.wrapLng(nw.lng).toFixed(5)}°`,
+      `${o.rotation ? "Bottom-right" : "SE"}: ${se.lat.toFixed(5)}°, ${SM.mapview.wrapLng(se.lng).toFixed(5)}°`,
       "Datum WGS84 · Web Mercator (EPSG:3857)",
       `Project: ${SM.state.project.name}`,
     ];

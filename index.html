@@ -60,6 +60,9 @@
     <symbol id="i-group" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/><path d="M11 7h4v4M13 17H9v-4" stroke-dasharray="2 2"/></symbol>
     <symbol id="i-brush" viewBox="0 0 24 24"><path d="M14 4l6 6-8 8-6-6z"/><path d="M6 12l-3 8 8-3"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+    <symbol id="i-areasel" viewBox="0 0 24 24"><rect x="3" y="3" width="13" height="11" rx="1" stroke-dasharray="3 2.4"/><circle cx="15.5" cy="17.5" r="2.2"/><circle cx="20" cy="20" r="2.2"/><path d="M17 16l5-5M18.5 19l3-6"/></symbol>
+    <symbol id="i-rotl" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></symbol>
+    <symbol id="i-rotr" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></symbol>
   </defs>
 </svg>
 
@@ -173,6 +176,7 @@
         <span class="sep"></span>
         <button data-tool="measure" title="Measure distance (D)"><svg><use href="#i-ruler"/></svg></button>
         <button data-tool="measure-area" title="Measure area (Shift+D)"><svg><use href="#i-area"/></svg></button>
+        <button data-tool="area" title="Select area (S) — drag a box or lasso around objects, then delete, cut out or keep only that area"><svg><use href="#i-areasel"/></svg></button>
         <button data-tool="delete" title="Delete (X) — click objects to delete"><svg><use href="#i-trash"/></svg></button>
       </nav>
 
@@ -191,6 +195,7 @@
           <button class="ctl-btn" id="btn-basemap" title="Base map"><svg><use href="#i-layers"/></svg><span id="basemap-label">Satellite</span></button>
           <div class="menu right" id="basemap-menu"></div>
         </div>
+        <button class="ctl-btn icon" id="btn-compass" title="Rotate the map ( [ and ] keys, N = north up)"><svg viewBox="0 0 24 24" id="compass-needle" style="transition:transform .15s"><path d="M12 2l4 10h-8z" fill="#e53935" stroke="none"/><path d="M12 22l-4-10h8z" fill="currentColor" stroke="none" opacity=".55"/></svg></button>
         <button class="ctl-btn icon" id="btn-goto" title="Go to coordinates"><svg><use href="#i-target"/></svg></button>
         <button class="ctl-btn icon" id="btn-fit" title="Zoom to all objects"><svg><use href="#i-fit"/></svg></button>
         <button class="ctl-btn icon" id="btn-grid" title="Coordinate grid"><svg><use href="#i-grid"/></svg></button>
@@ -215,11 +220,25 @@
     <span class="st" id="st-zoom">Zoom —</span>
     <span class="st" id="st-tool">Tool: Select</span>
     <span class="st" id="st-layer">Layer: —</span>
+    <span class="st st-btn" id="st-units" title="Change measurement units">Units: —</span>
     <span class="st grow"></span>
     <span class="st" id="st-count">0 objects</span>
   </footer>
 </div>
 
+<div id="rot-pop" class="menu rot-pop">
+  <div class="rot-head">Rotate map</div>
+  <div class="rot-row"><input type="range" id="rot-range" min="-180" max="180" step="1" value="0"><input type="number" id="rot-input" min="-180" max="180" step="0.5" value="0"><span>°</span></div>
+  <div class="rot-row">
+    <button class="mini-btn" data-rot="-15" title="Turn left 15°"><svg><use href="#i-rotl"/></svg>15°</button>
+    <button class="mini-btn" data-rot="-1" title="Turn left 1°">1°</button>
+    <button class="mini-btn primary" data-rot="0">North up</button>
+    <button class="mini-btn" data-rot="1" title="Turn right 1°">1°</button>
+    <button class="mini-btn" data-rot="15" title="Turn right 15°">15°<svg><use href="#i-rotr"/></svg></button>
+  </div>
+  <button class="mini-btn" id="rot-align" style="width:100%;justify-content:center">Line up with selected road / boundary</button>
+  <div class="menu-note" style="padding:6px 2px 0">Saved with the project. Exports can be rotated too.</div>
+</div>
 <div id="modal-root"></div>
 <input type="file" id="file-input" accept=".kml,.kmz,.geojson,.json,.csv,.txt,.zip,.shp,.dbf,.prj,.cpg,.shx,.dxf,.dwg,.png,.jpg,.jpeg,.webp,.gif,.bmp,.svg" multiple hidden>
 
@@ -244,6 +263,7 @@
 <script src="js/overlays.js"></script>
 <script src="js/cad.js"></script>
 <script src="js/tools.js"></script>
+<script src="js/areaops.js"></script>
 <script src="js/panels.js"></script>
 <script src="js/props.js"></script>
 <script src="js/io.js"></script>

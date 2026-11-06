@@ -67,7 +67,8 @@ window.SM = window.SM || {};
   /* ---------- settings (browser storage) ---------- */
   const SETTINGS_KEY = "satmap.settings";
   const DEFAULT_SETTINGS = {
-    units: "metric",          // metric | imperial
+    lengthUnit: "auto",       // auto | m | km | ft | yd | mi | auto-ft
+    areaUnit: "auto",         // auto | m2 | ha | km2 | acre | decimal | ft2 | yd2
     coordFormat: "dd",        // dd | dms
     snapping: true,
     snapDistance: 15,
@@ -80,6 +81,8 @@ window.SM = window.SM || {};
   SM.settings = Object.assign(SM.clone(DEFAULT_SETTINGS), (() => {
     try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"); } catch (e) { return {}; }
   })());
+  if (SM.settings.units === "imperial") { SM.settings.lengthUnit = "auto-ft"; SM.settings.areaUnit = "acre"; } // older setting
+  delete SM.settings.units;
   SM.saveSettings = () => {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(SM.settings)); } catch (e) { /* storage full or blocked */ }
     SM.bus.emit("settings", SM.settings);
@@ -88,23 +91,50 @@ window.SM = window.SM || {};
   /* ---------- formatting ---------- */
   const fmtNum = (v, d) => Number(v).toLocaleString("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d });
   SM.fmtNum = fmtNum;
+  /* Units. Exact international definitions: 1 ft = 0.3048 m, 1 acre = 4046.8564224 m²,
+     1 decimal (dismil) = 1/100 acre, 1 gaj = 1 square yard. */
+  SM.LENGTH_UNITS = [
+    ["auto", "Auto (m / km)"], ["m", "Metres (m)"], ["km", "Kilometres (km)"],
+    ["ft", "Feet (ft)"], ["yd", "Yards (yd)"], ["mi", "Miles (mi)"], ["auto-ft", "Auto (ft / mi)"],
+  ];
+  SM.AREA_UNITS = [
+    ["auto", "Auto (m² / ha / km²)"], ["m2", "Square metres (m²)"], ["ha", "Hectares (ha)"], ["km2", "Square km (km²)"],
+    ["acre", "Acres"], ["decimal", "Decimal / dismil"], ["ft2", "Square feet (ft²)"], ["yd2", "Square yards / gaj (yd²)"],
+  ];
+  const LEN = { m: [1, 2, "m"], km: [1000, 3, "km"], ft: [0.3048, 1, "ft"], yd: [0.9144, 1, "yd"], mi: [1609.344, 3, "mi"] };
+  const AREA = { m2: [1, 1, "m²"], ha: [1e4, 4, "ha"], km2: [1e6, 4, "km²"], acre: [4046.8564224, 4, "acres"], decimal: [40.468564224, 2, "decimal"], ft2: [0.09290304, 0, "ft²"], yd2: [0.83612736, 1, "yd²"] };
   SM.fmtLength = function (m, unit) {
-    unit = unit || (SM.settings.units === "imperial" ? "auto-ft" : "auto");
-    if (unit === "m") return fmtNum(m, 2) + " m";
-    if (unit === "km") return fmtNum(m / 1000, 3) + " km";
-    if (unit === "ft") return fmtNum(m / 0.3048, 1) + " ft";
+    unit = unit || SM.settings.lengthUnit || "auto";
+    if (LEN[unit]) { const [f, d, sym] = LEN[unit]; return fmtNum(m / f, d) + " " + sym; }
     if (unit === "auto-ft") { const ft = m / 0.3048; return ft >= 5280 ? fmtNum(ft / 5280, 3) + " mi" : fmtNum(ft, 1) + " ft"; }
     return m >= 1000 ? fmtNum(m / 1000, 3) + " km" : fmtNum(m, m < 10 ? 2 : 1) + " m";
   };
   SM.fmtArea = function (m2, unit) {
-    unit = unit || (SM.settings.units === "imperial" ? "acre" : "auto");
-    if (unit === "m2") return fmtNum(m2, 1) + " m²";
-    if (unit === "ha") return fmtNum(m2 / 1e4, 4) + " ha";
-    if (unit === "acre") return fmtNum(m2 / 4046.8564224, 4) + " acres";
-    if (unit === "km2") return fmtNum(m2 / 1e6, 4) + " km²";
+    unit = unit || SM.settings.areaUnit || "auto";
+    if (AREA[unit]) { const [f, d, sym] = AREA[unit]; return fmtNum(m2 / f, d) + " " + sym; }
     if (m2 >= 1e6) return fmtNum(m2 / 1e6, 3) + " km²";
     if (m2 >= 1e4) return fmtNum(m2 / 1e4, 3) + " ha";
     return fmtNum(m2, 1) + " m²";
+  };
+  SM.unitShort = (kind) => {
+    const u = kind === "area" ? SM.settings.areaUnit : SM.settings.lengthUnit;
+    if (!u || u === "auto") return kind === "area" ? "m²/ha" : "m/km";
+    if (u === "auto-ft") return "ft/mi";
+    return (kind === "area" ? AREA[u] : LEN[u])[2];
+  };
+  /** True when lengths are shown in feet/yards/miles (used for scale bars). */
+  SM.imperialLengths = () => ["ft", "yd", "mi", "auto-ft"].includes(SM.settings.lengthUnit);
+  SM.setUnit = function (kind, value) {
+    SM.settings[kind === "area" ? "areaUnit" : "lengthUnit"] = value;
+    SM.saveSettings();
+  };
+  /** A <select> bound to the length or area unit setting. */
+  SM.unitSelect = function (kind, cls) {
+    const list = kind === "area" ? SM.AREA_UNITS : SM.LENGTH_UNITS, cur = kind === "area" ? SM.settings.areaUnit : SM.settings.lengthUnit;
+    const s = SM.el("select", { class: cls || "unit-sel", title: kind === "area" ? "Area unit" : "Length unit" },
+      list.map(([v, t]) => SM.el("option", { value: v, text: t, selected: v === cur })));
+    s.addEventListener("change", () => SM.setUnit(kind, s.value));
+    return s;
   };
   SM.toDMS = function (v, isLat) {
     const h = isLat ? (v >= 0 ? "N" : "S") : (v >= 0 ? "E" : "W");

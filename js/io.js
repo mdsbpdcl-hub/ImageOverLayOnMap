@@ -130,7 +130,7 @@
           if (await SM.confirm("Open project backup", `Open "${obj.project.name}" as a new project? Your current project stays saved.`, "Open")) {
             if (SM.state.dirty) await SM.store.save({ silent: true });
             SM.store.load(obj.project, null);
-            if (obj.project.viewport) SM.map.setView(obj.project.viewport.center, obj.project.viewport.zoom);
+            if (obj.project.viewport) { SM.map.setView(obj.project.viewport.center, obj.project.viewport.zoom); SM.mapview.setBearing(obj.project.viewport.bearing || 0); }
             SM.mapview.setBasemap(obj.project.basemap);
             await SM.store.save({ silent: true });
             SM.toast("Project restored from backup", "ok");
@@ -200,7 +200,7 @@
   IO.exportVector = async function (format, opts) {
     opts = opts || {};
     const p = SM.state.project;
-    const payload = Object.assign({ project: Object.assign({}, p, { viewport: { center: [SM.map.getCenter().lat, SM.map.getCenter().lng], zoom: SM.map.getZoom() } }), format, onlyVisible: true }, opts);
+    const payload = Object.assign({ project: Object.assign({}, p, { viewport: SM.mapview.viewport() }), format, onlyVisible: true }, opts);
     try {
       const blob = await SM.api.exportFile(payload);
       const ext = format === "shp" ? "shapefile.zip" : format;
@@ -272,7 +272,7 @@
   };
   IO.exportProjectBackup = function () {
     const p = SM.state.project;
-    p.viewport = { center: [SM.map.getCenter().lat, SM.map.getCenter().lng], zoom: SM.map.getZoom() };
+    p.viewport = SM.mapview.viewport();
     const blob = new Blob([JSON.stringify({ satmapProject: 1, exportedAt: new Date().toISOString(), project: p }, null, 1)], { type: "application/json" });
     SM.downloadBlob(blob, SM.safeName(p.name) + ".satmap.json");
   };
@@ -295,6 +295,7 @@
       SM.store.load(r.data, r.id);
       const vp = r.data.viewport;
       if (vp && vp.center) SM.map.setView(vp.center, vp.zoom);
+      SM.mapview.setBearing((vp && vp.bearing) || 0);
       SM.mapview.setBasemap(r.data.basemap);
       SM.toast(`Opened "${r.name}"`, "ok", 1800);
     } catch (e) { SM.toast("Could not open project: " + e.message, "error"); }
@@ -356,6 +357,7 @@
       if (SM.state.dirty) await SM.store.save({ silent: true });
       SM.store.load(obj.project, null);
       SM.map.setView(obj.project.viewport.center, obj.project.viewport.zoom);
+      SM.mapview.setBearing(obj.project.viewport.bearing || 0);
       SM.mapview.setBasemap(obj.project.basemap);
       await SM.store.save({ silent: true });
       SM.toast("Example project loaded and saved as a new project", "ok", 3000);
@@ -376,7 +378,7 @@
   IO.settingsDialog = function () {
     const s = SM.settings;
     const sel = (opts, val) => SM.el("select", { class: "field" }, opts.map(([v, t]) => SM.el("option", { value: v, text: t, selected: String(v) === String(val) })));
-    const units = sel([["metric", "Metric (m, km, ha)"], ["imperial", "Imperial (ft, mi, acres)"]], s.units);
+    const lenU = sel(SM.LENGTH_UNITS, s.lengthUnit), areaU = sel(SM.AREA_UNITS, s.areaUnit);
     const coord = sel([["dd", "Decimal degrees (25.594100, 85.137600)"], ["dms", "Degrees minutes seconds"]], s.coordFormat);
     const snap = SM.el("input", { type: "checkbox", checked: s.snapping });
     const snapD = SM.el("input", { class: "field", type: "number", min: 2, max: 60, value: s.snapDistance });
@@ -387,7 +389,8 @@
     const kMaptiler = SM.el("input", { class: "field", type: "password", value: keys.maptiler || "", placeholder: "optional — enables MapTiler satellite", autocomplete: "off" });
     const kMapbox = SM.el("input", { class: "field", type: "password", value: keys.mapbox || "", placeholder: "optional — enables Mapbox satellite", autocomplete: "off" });
     const body = SM.el("div", { class: "form-grid" },
-      SM.el("label", { text: "Units" }), units,
+      SM.el("label", { text: "Length unit" }), lenU,
+      SM.el("label", { text: "Area unit" }), areaU,
       SM.el("label", { text: "Coordinates" }), coord,
       SM.el("label", { text: "Snapping" }), SM.el("label", { class: "check" }, snap, "Snap to nearby vertices and edges"),
       SM.el("label", { text: "Snap distance (px)" }), snapD,
@@ -401,7 +404,7 @@
       title: "Settings", body,
       buttons: [{ label: "Cancel" }, {
         label: "Save", cls: "primary", action: () => {
-          Object.assign(s, { units: units.value, coordFormat: coord.value, snapping: snap.checked, snapDistance: SM.clamp(+snapD.value || 15, 2, 60), keepTool: keep.checked, measureLabels: ml.value, autosaveSeconds: +auto.value });
+          Object.assign(s, { lengthUnit: lenU.value, areaUnit: areaU.value, coordFormat: coord.value, snapping: snap.checked, snapDistance: SM.clamp(+snapD.value || 15, 2, 60), keepTool: keep.checked, measureLabels: ml.value, autosaveSeconds: +auto.value });
           const oldKeys = JSON.stringify(s.apiKeys || {});
           s.apiKeys = { maptiler: kMaptiler.value.trim(), mapbox: kMapbox.value.trim() };
           SM.saveSettings();
