@@ -1,0 +1,751 @@
+{
+ "type": "FeatureCollection",
+ "name": "Example \u2014 event site layout",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       85.14105,
+       25.62185
+      ],
+      [
+       85.14725,
+       25.62185
+      ],
+      [
+       85.14725,
+       25.61705
+      ],
+      [
+       85.14105,
+       25.61705
+      ],
+      [
+       85.14105,
+       25.62185
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "id": "ex1",
+    "layerId": "lyrsite",
+    "kind": "polygon",
+    "name": "Event ground boundary",
+    "description": "Site boundary for the programme layout",
+    "style": {
+     "color": "#ffcc00",
+     "weight": 3,
+     "opacity": 1.0,
+     "dash": "solid",
+     "fill": true,
+     "fillColor": "#ffcc00",
+     "fillOpacity": 0.12,
+     "arrow": false
+    },
+    "label": {
+     "text": "",
+     "show": true,
+     "size": 15,
+     "color": "#ffffff",
+     "bold": true,
+     "italic": false,
+     "align": "center",
+     "halo": true,
+     "offset": [
+      0,
+      0
+     ]
+    },
+    "hidden": false,
+    "locked": false,
+    "group": null,
+    "layerName": "Site & zones"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       85.14415,
+       25.620533206494688
+      ],
+      [
+       85.14425413165344,
+       25.620529084530155
+      ],
+      [
+       85.14435747078083,
+       25.620516750008033
+      ],
+      [
+       85.14445923088834,
+       25.62049629680393
+      ],
+      [
+       85.14455863750074,
+       25.620467880583135
+      ],
+      [
+       85.14465493405616,
+       25.620431717615705
+      ],
+      [
+       85.14474738766455,
+       25.62038808313039
+      ],
+      [
+       85.14483529468588,
+       25.620337309219796
+      ],
+      [
+       85.14491798608557,
+       25.620279782312668
+      ],
+      [
+       85.14499483252662,
+       25.620215940232722
+      ],
+      [
+       85.14506524915936,
+       25.620146268866232
+      ],
+      [
+       85.14512870007253,
+       25.620071298463863
+      ],
+      [
+       85.14518470237194,
+       25.619991599604845
+      ],
+      [
+       85.14523282985527,
+       25.619907778854273
+      ],
+      [
+       85.14527271625563,
+       25.619820474146476
+      ],
+      [
+       85.14530405802851,
+       25.619730349929732
+      ],
+      [
+       85.14532661666163,
+       25.619638092109227
+      ],
+      [
+       85.14534022048956,
+       25.6195444028267
+      ],
+      [
+       85.14534476599957,
+       25.619449995116632
+      ],
+      [
+       85.14534021861891,
+       25.61935558747954
+      ],
+      [
+       85.14532661297719,
+       25.6192618984137
+      ],
+      [
+       85.14530405264222,
+       25.619169640947025
+      ],
+      [
+       85.14527270933114,
+       25.619079517210498
+      ],
+      [
+       85.14523282160299,
+       25.618992213094714
+      ],
+      [
+       85.1451846930426,
+       25.618908393029958
+      ],
+      [
+       85.1451286899496,
+       25.618828694929743
+      ],
+      [
+       85.1450652385504,
+       25.618753725336077
+      ],
+      [
+       85.14499482175403,
+       25.61868405480363
+      ],
+      [
+       85.14491797547663,
+       25.618620213557737
+      ],
+      [
+       85.14483528456294,
+       25.61856268745932
+      ],
+      [
+       85.14474737833521,
+       25.618511914307504
+      ],
+      [
+       85.14465492580388,
+       25.618468280508022
+      ],
+      [
+       85.14455863057624,
+       25.618432118132596
+      ],
+      [
+       85.14445922550205,
+       25.618403702392012
+      ],
+      [
+       85.14435746709638,
+       25.61838324954176
+      ],
+      [
+       85.1442541297828,
+       25.618370915236323
+      ],
+      [
+       85.14415,
+       25.618366793344755
+      ],
+      [
+       85.1440458702172,
+       25.618370915236323
+      ],
+      [
+       85.14394253290361,
+       25.61838324954176
+      ],
+      [
+       85.14384077449795,
+       25.618403702392012
+      ],
+      [
+       85.14374136942375,
+       25.618432118132596
+      ],
+      [
+       85.14364507419612,
+       25.618468280508022
+      ],
+      [
+       85.14355262166478,
+       25.618511914307504
+      ],
+      [
+       85.14346471543705,
+       25.61856268745932
+      ],
+      [
+       85.14338202452336,
+       25.618620213557737
+      ],
+      [
+       85.14330517824597,
+       25.61868405480363
+      ],
+      [
+       85.14323476144959,
+       25.618753725336077
+      ],
+      [
+       85.14317131005039,
+       25.618828694929743
+      ],
+      [
+       85.1431153069574,
+       25.618908393029958
+      ],
+      [
+       85.143067178397,
+       25.618992213094714
+      ],
+      [
+       85.14302729066885,
+       25.619079517210498
+      ],
+      [
+       85.14299594735778,
+       25.619169640947025
+      ],
+      [
+       85.1429733870228,
+       25.6192618984137
+      ],
+      [
+       85.14295978138108,
+       25.61935558747954
+      ],
+      [
+       85.14295523400042,
+       25.619449995116632
+      ],
+      [
+       85.14295977951043,
+       25.6195444028267
+      ],
+      [
+       85.14297338333836,
+       25.619638092109227
+      ],
+      [
+       85.14299594197148,
+       25.619730349929732
+      ],
+      [
+       85.14302728374436,
+       25.619820474146476
+      ],
+      [
+       85.14306717014472,
+       25.619907778854273
+      ],
+      [
+       85.14311529762806,
+       25.619991599604845
+      ],
+      [
+       85.14317129992746,
+       25.620071298463863
+      ],
+      [
+       85.14323475084063,
+       25.620146268866232
+      ],
+      [
+       85.14330516747337,
+       25.620215940232722
+      ],
+      [
+       85.14338201391442,
+       25.620279782312668
+      ],
+      [
+       85.14346470531412,
+       25.620337309219796
+      ],
+      [
+       85.14355261233544,
+       25.62038808313039
+      ],
+      [
+       85.14364506594383,
+       25.620431717615705
+      ],
+      [
+       85.14374136249926,
+       25.620467880583135
+      ],
+      [
+       85.14384076911165,
+       25.62049629680393
+      ],
+      [
+       85.14394252921916,
+       25.620516750008033
+      ],
+      [
+       85.14404586834655,
+       25.620529084530155
+      ],
+      [
+       85.14415,
+       25.620533206494688
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "id": "ex2",
+    "layerId": "lyrsite",
+    "kind": "circle",
+    "name": "Main stage zone",
+    "description": "",
+    "style": {
+     "color": "#ff5252",
+     "weight": 3,
+     "opacity": 1.0,
+     "dash": "solid",
+     "fill": true,
+     "fillColor": "#ff5252",
+     "fillOpacity": 0.3,
+     "arrow": false
+    },
+    "label": {
+     "text": "",
+     "show": false,
+     "size": 14,
+     "color": "#ffffff",
+     "bold": false,
+     "italic": false,
+     "align": "center",
+     "halo": true,
+     "offset": [
+      0,
+      0
+     ]
+    },
+    "hidden": false,
+    "locked": false,
+    "group": null,
+    "radius": 120.0,
+    "layerName": "Site & zones",
+    "center": [
+     85.14415,
+     25.61945
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       85.142,
+       25.621
+      ],
+      [
+       85.1432,
+       25.621
+      ],
+      [
+       85.1432,
+       25.6203
+      ],
+      [
+       85.142,
+       25.6203
+      ],
+      [
+       85.142,
+       25.621
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "id": "ex3",
+    "layerId": "lyrsite",
+    "kind": "rectangle",
+    "name": "Parking A",
+    "description": "",
+    "style": {
+     "color": "#40c4ff",
+     "weight": 3,
+     "opacity": 1.0,
+     "dash": "dashed",
+     "fill": true,
+     "fillColor": "#40c4ff",
+     "fillOpacity": 0.35,
+     "arrow": false
+    },
+    "label": {
+     "text": "",
+     "show": true,
+     "size": 12,
+     "color": "#ffffff",
+     "bold": false,
+     "italic": false,
+     "align": "center",
+     "halo": true,
+     "offset": [
+      0,
+      0
+     ]
+    },
+    "hidden": false,
+    "locked": false,
+    "group": null,
+    "layerName": "Site & zones"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      85.1398,
+      25.616
+     ],
+     [
+      85.1412,
+      25.6172
+     ],
+     [
+      85.144,
+      25.6168
+     ],
+     [
+      85.1468,
+      25.6166
+     ],
+     [
+      85.149,
+      25.617
+     ]
+    ]
+   },
+   "properties": {
+    "id": "ex4",
+    "layerId": "lyrroad",
+    "kind": "polyline",
+    "name": "Approach road centre line",
+    "description": "",
+    "style": {
+     "color": "#ffffff",
+     "weight": 4,
+     "opacity": 1.0,
+     "dash": "dashed",
+     "fill": false,
+     "fillColor": "#ffcc00",
+     "fillOpacity": 0.25,
+     "arrow": false
+    },
+    "label": {
+     "text": "",
+     "show": true,
+     "size": 12,
+     "color": "#ffffff",
+     "bold": false,
+     "italic": false,
+     "align": "center",
+     "halo": true,
+     "offset": [
+      0,
+      0
+     ]
+    },
+    "hidden": false,
+    "locked": false,
+    "group": null,
+    "layerName": "Roads & routes"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      85.14,
+      25.6205
+     ],
+     [
+      85.1411,
+      25.6199
+     ],
+     [
+      85.1416,
+      25.619
+     ]
+    ]
+   },
+   "properties": {
+    "id": "ex5",
+    "layerId": "lyrroad",
+    "kind": "arrow",
+    "name": "Entry route",
+    "description": "",
+    "style": {
+     "color": "#69f0ae",
+     "weight": 5,
+     "opacity": 1.0,
+     "dash": "solid",
+     "fill": false,
+     "fillColor": "#ffcc00",
+     "fillOpacity": 0.25,
+     "arrow": true
+    },
+    "label": {
+     "text": "",
+     "show": false,
+     "size": 14,
+     "color": "#ffffff",
+     "bold": false,
+     "italic": false,
+     "align": "center",
+     "halo": true,
+     "offset": [
+      0,
+      0
+     ]
+    },
+    "hidden": false,
+    "locked": false,
+    "group": null,
+    "layerName": "Roads & routes"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     85.14105,
+     25.61945
+    ]
+   },
+   "properties": {
+    "id": "ex6",
+    "layerId": "lyrnote",
+    "kind": "marker",
+    "name": "Gate 1",
+    "description": "",
+    "style": {
+     "color": "#e53935",
+     "weight": 3,
+     "opacity": 1.0,
+     "dash": "solid",
+     "fill": true,
+     "fillColor": "#ffcc00",
+     "fillOpacity": 0.25,
+     "arrow": false
+    },
+    "label": {
+     "text": "",
+     "show": true,
+     "size": 13,
+     "color": "#ffffff",
+     "bold": false,
+     "italic": false,
+     "align": "center",
+     "halo": true,
+     "offset": [
+      0,
+      0
+     ]
+    },
+    "hidden": false,
+    "locked": false,
+    "group": null,
+    "layerName": "Points & labels"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     85.14725,
+     25.61945
+    ]
+   },
+   "properties": {
+    "id": "ex7",
+    "layerId": "lyrnote",
+    "kind": "marker",
+    "name": "Gate 2",
+    "description": "",
+    "style": {
+     "color": "#e53935",
+     "weight": 3,
+     "opacity": 1.0,
+     "dash": "solid",
+     "fill": true,
+     "fillColor": "#ffcc00",
+     "fillOpacity": 0.25,
+     "arrow": false
+    },
+    "label": {
+     "text": "",
+     "show": true,
+     "size": 13,
+     "color": "#ffffff",
+     "bold": false,
+     "italic": false,
+     "align": "center",
+     "halo": true,
+     "offset": [
+      0,
+      0
+     ]
+    },
+    "hidden": false,
+    "locked": false,
+    "group": null,
+    "layerName": "Points & labels"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     85.1442,
+     25.6225
+    ]
+   },
+   "properties": {
+    "id": "ex8",
+    "layerId": "lyrnote",
+    "kind": "text",
+    "name": "Title",
+    "description": "",
+    "style": {
+     "color": "#ffcc00",
+     "weight": 3,
+     "opacity": 1.0,
+     "dash": "solid",
+     "fill": true,
+     "fillColor": "#ffcc00",
+     "fillOpacity": 0.25,
+     "arrow": false
+    },
+    "label": {
+     "text": "EVENT LAYOUT (example)",
+     "show": true,
+     "size": 20,
+     "color": "#ffffff",
+     "bold": true,
+     "italic": false,
+     "align": "center",
+     "halo": true,
+     "offset": [
+      0,
+      0
+     ]
+    },
+    "hidden": false,
+    "locked": false,
+    "group": null,
+    "layerName": "Points & labels"
+   }
+  }
+ ],
+ "satmap_layers": [
+  {
+   "id": "lyrsite",
+   "name": "Site & zones",
+   "visible": true,
+   "locked": false
+  },
+  {
+   "id": "lyrroad",
+   "name": "Roads & routes",
+   "visible": true,
+   "locked": false
+  },
+  {
+   "id": "lyrnote",
+   "name": "Points & labels",
+   "visible": true,
+   "locked": false
+  }
+ ]
+}

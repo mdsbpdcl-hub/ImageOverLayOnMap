@@ -1,0 +1,5 @@
+name,lat,lon,description,layer
+Gate 1,25.61945,85.14105,Main entrance,Gates
+Gate 2,25.61945,85.14725,VIP entrance,Gates
+First aid,25.62050,85.14600,Medical tent,Facilities
+Control room,25.61760,85.14200,Police and control room,Facilities

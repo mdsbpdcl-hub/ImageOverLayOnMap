@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SatMap Self-Test</title>
+<style>
+  :root { --bg: #f4f5f7; --text: #1d2330; --ok: #188038; --bad: #d93025; --muted: #687284; }
+  body { margin: 0; padding: 24px 16px; background: var(--bg); color: var(--text); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p { color: var(--muted); margin: 0 0 16px; }
+  #summary { font-weight: 600; font-size: 16px; margin-bottom: 12px; }
+  ul { list-style: none; padding: 0; margin: 0; background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  li { padding: 8px 14px; border-bottom: 1px solid #eceef2; display: flex; gap: 10px; }
+  li:last-child { border-bottom: 0; }
+  .ok b { color: var(--ok); } .bad b { color: var(--bad); }
+  li small { color: var(--bad); display: block; }
+  a { color: #1f6feb; }
+</style>
+</head>
+<body>
+<main>
+  <h1>SatMap GIS — self-test</h1>
+  <p>Checks the measurement maths, the KML / KMZ / GeoJSON / CSV / Shapefile import and export, AutoCAD geometry and picture alignment in <em>this</em> browser. Nothing is saved. <a href="./">Back to the map</a></p>
+  <div id="summary">Running…</div>
+  <ul id="list"></ul>
+</main>
+<script src="vendor/turf/turf.min.js"></script>
+<script src="vendor/fflate/fflate.min.js"></script>
+<script src="vendor/proj4/proj4.js"></script>
+<script src="vendor/dxf-parser/dxf-parser.js"></script>
+<script src="js/util.js"></script>
+<script src="js/geodesy.js"></script>
+<script src="js/transform.js"></script>
+<script src="js/crs.js"></script>
+<script src="js/gis.js"></script>
+<script src="js/shp.js"></script>
+<script src="js/cad.js"></script>
+<script>
+"use strict";
+const results = [];
+const near = (a, b, tol) => Math.abs(a - b) <= tol;
+function test(name, fn) {
+  try { fn(); results.push({ name, ok: true }); }
+  catch (e) { results.push({ name, ok: false, err: e.message }); }
+}
+function assert(c, msg) { if (!c) throw new Error(msg || "assertion failed"); }
+const G = SM.gis, geo = SM.geo;
+const parse = (xml) => new DOMParser().parseFromString(xml, "application/xml");
+const q = (el, sel) => Array.from(el.getElementsByTagName(sel));
+
+function project() {
+  return {
+    name: "Test <&> project", viewport: { center: [25.6, 85.1], zoom: 15 },
+    layers: [{ id: "A", name: "Boundaries", visible: true }, { id: "B", name: "Hidden layer", visible: false }],
+    features: [
+      { type: "Feature", geometry: { type: "Polygon", coordinates: [[[85.1, 25.6], [85.11, 25.6], [85.11, 25.61], [85.1, 25.61], [85.1, 25.6]]] },
+        properties: { id: "p1", layerId: "A", kind: "polygon", name: "Plot", description: "Survey no. 12",
+          style: { color: "#ff0000", weight: 4, opacity: 0.8, fillColor: "#00ff00", fillOpacity: 0.4, fill: true }, label: { show: true, text: "Plot 12", size: 16 } } },
+      { type: "Feature", geometry: { type: "Point", coordinates: [85.105, 25.605] }, properties: { id: "c1", layerId: "A", kind: "circle", radius: 250.5, name: "Zone" } },
+      { type: "Feature", geometry: { type: "LineString", coordinates: [[85.1, 25.6], [85.12, 25.62]] }, properties: { id: "a1", layerId: "A", kind: "arrow", name: "Route", style: { color: "#0000ff", weight: 6 } } },
+      { type: "Feature", geometry: { type: "Point", coordinates: [85.1, 25.6] }, properties: { id: "t1", layerId: "A", kind: "text", label: { text: "Hello", size: 28 } } },
+      { type: "Feature", geometry: { type: "Point", coordinates: [85.2, 25.7] }, properties: { id: "h1", layerId: "B", kind: "marker", name: "In hidden layer" } },
+    ],
+  };
+}
+
+/* ---------- geodesy ---------- */
+test("1° of longitude on the equator = 111,319.49 m", () => assert(near(geo.lineLength([[0, 0], [1, 0]]), 111319.49, 0.01)));
+test("1 km × 1 km square near Patna has area 1 km²", () => {
+  const sw = [85.1, 25.6], se = geo.destination(sw, 90, 1000), ne = geo.destination(se, 0, 1000), nw = geo.destination(sw, 0, 1000);
+  const a = geo.polygonArea([[sw, se, ne, nw, sw]]);
+  assert(near(a, 999962.46, 0.05), "area " + a);   // PyProj/Karney reference value
+});
+test("hole is subtracted from polygon area", () => {
+  const o = [[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]], h = [[0.0025, 0.0025], [0.0075, 0.0025], [0.0075, 0.0075], [0.0025, 0.0075], [0.0025, 0.0025]];
+  assert(near(geo.polygonArea([o, h]) / geo.polygonArea([o]), 0.75, 1e-3));
+});
+test("circle vertices lie at the radius (within 0.1 mm)", () => {
+  const ring = geo.circleRing([85.14, 25.62], 500, 72);
+  assert(ring.length === 73);
+  ring.slice(0, -1).forEach((c) => assert(near(geo.distance([85.14, 25.62], c), 500, 1e-4)));
+});
+test("measurements are the same at any map zoom (stored as coordinates)", () => {
+  const f = { type: "Feature", geometry: { type: "LineString", coordinates: [[85.1, 25.6], [85.2, 25.6]] }, properties: { kind: "polyline" } };
+  assert(near(geo.measureFeature(f).length_m, geo.lineLength(f.geometry.coordinates), 1e-9));
+});
+
+/* ---------- colours ---------- */
+test("colour conversion #rrggbb ↔ KML aabbggrr", () => {
+  assert(G.hexToKml("#ff8000", 0.5) === "800080ff");
+  const [h, a] = G.kmlToHex("800080ff"); assert(h === "#ff8000" && near(a, 0.502, 0.01));
+});
+
+/* ---------- KML export ---------- */
+test("KML is valid XML with layer folders, styles and lon,lat order", () => {
+  const d = parse(G.exportKML(project()));
+  assert(!d.getElementsByTagName("parsererror").length, "not well-formed");
+  const folders = q(d, "Folder").map((f) => f.getElementsByTagName("name")[0].textContent);
+  assert(JSON.stringify(folders) === '["Boundaries"]', "folders " + folders);
+  const pm = q(d, "Placemark")[0];
+  assert(pm.getElementsByTagName("name")[0].textContent === "Plot");
+  assert(pm.getElementsByTagName("description")[0].textContent === "Survey no. 12");
+  assert(q(pm, "LineStyle")[0].getElementsByTagName("color")[0].textContent === "cc0000ff");
+  assert(q(pm, "PolyStyle")[0].getElementsByTagName("color")[0].textContent === "6600ff00");
+  assert(q(pm, "coordinates")[0].textContent.trim().startsWith("85.10000000,25.60000000"));
+});
+test("circle exports as a 72-point polygon and re-imports as the same circle", () => {
+  const kml = G.exportKML(project());
+  const zone = q(parse(kml), "Placemark").find((p) => p.getElementsByTagName("name")[0].textContent === "Zone");
+  assert(q(zone, "coordinates")[0].textContent.trim().split(/\s+/).length === 73);
+  const c = G.importKML(kml).features.find((f) => f.properties.kind === "circle");
+  assert(near(c.properties.radius, 250.5, 1e-9) && near(c.geometry.coordinates[0], 85.105, 1e-9) && near(c.geometry.coordinates[1], 25.605, 1e-9));
+});
+test("KML round trip keeps every object type, style and label", () => {
+  const back = G.importKML(G.exportKML(project(), { onlyVisible: false }));
+  assert(back.features.map((f) => f.properties.kind).sort().join() === "arrow,circle,marker,polygon,text");
+  assert(back.layers.map((l) => l.name).join() === "Boundaries,Hidden layer");
+  const poly = back.features.find((f) => f.properties.kind === "polygon").properties;
+  assert(poly.style.fillColor === "#00ff00" && poly.style.weight === 4 && poly.label.text === "Plot 12");
+  const t = back.features.find((f) => f.properties.kind === "text").properties;
+  assert(t.label.text === "Hello" && t.label.size === 28);
+});
+test("export selected shapes only", () => assert(q(parse(G.exportKML(project(), { featureIds: ["a1"] })), "Placemark").length === 1));
+test("KMZ round trip", () => {
+  const kmz = G.exportKMZ(G.exportKML(project()));
+  assert(kmz[0] === 0x50 && kmz[1] === 0x4b);
+  assert(G.importKMZ(kmz, "x").features.length === 4);
+});
+
+/* ---------- KML import from other software ---------- */
+test("Google Earth KML with StyleMap, folders and MultiGeometry", () => {
+  const kml = `<?xml version="1.0"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+    <Style id="s1"><LineStyle><color>ff0000ff</color><width>5</width></LineStyle><PolyStyle><color>7f00ff00</color></PolyStyle></Style>
+    <StyleMap id="m1"><Pair><key>normal</key><styleUrl>#s1</styleUrl></Pair></StyleMap>
+    <Folder><name>Survey</name>
+      <Placemark><name>Field</name><styleUrl>#m1</styleUrl><Polygon><outerBoundaryIs><LinearRing><coordinates>
+        85.1,25.6,0 85.2,25.6,0 85.2,25.7,0 85.1,25.6,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+      <Placemark><name>Multi</name><MultiGeometry><Point><coordinates>85,25</coordinates></Point>
+        <LineString><coordinates>85,25 85.1,25.1</coordinates></LineString></MultiGeometry></Placemark>
+    </Folder><GroundOverlay><name>scan</name></GroundOverlay></Document></kml>`;
+  const r = G.importKML(kml, "x");
+  assert(r.layers[0].name === "Survey");
+  const s = r.features[0].properties.style;
+  assert(s.color === "#ff0000" && s.weight === 5 && s.fillColor === "#00ff00");
+  assert(r.features.length === 3 && r.warnings.some((w) => w.includes("Image overlay 'scan' skipped")));
+});
+test("bow-tie (self-intersecting) polygon is repaired into valid parts", () => {
+  const kml = `<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><Polygon><outerBoundaryIs><LinearRing><coordinates>0,0 1,1 1,0 0,1 0,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></kml>`;
+  const r = G.importKML(kml, "x");
+  assert(r.features.length === 2 && r.warnings.length === 1);
+});
+test("XML with entity declarations is rejected", () => {
+  let threw = false;
+  try { G.importKML('<?xml version="1.0"?><!DOCTYPE l [<!ENTITY a "aaaa">]><kml>&a;</kml>', "x"); } catch (e) { threw = e instanceof G.ImportError; }
+  assert(threw);
+});
+test("non-KML XML is rejected with a clear message", () => {
+  let msg = "";
+  try { G.importKML("<html></html>", "x"); } catch (e) { msg = e.message; }
+  assert(msg.includes("not KML"));
+});
+
+/* ---------- GeoJSON ---------- */
+test("GeoJSON round trip restores circles", () => {
+  const gj = G.exportGeoJSON(project());
+  const c = gj.features.find((f) => f.properties.kind === "circle");
+  assert(c.geometry.type === "Polygon" && c.properties.radius === 250.5);
+  const back = G.importGeoJSON(JSON.stringify(gj), "x").features.find((f) => f.properties.kind === "circle");
+  assert(JSON.stringify(back.geometry) === JSON.stringify({ type: "Point", coordinates: [85.105, 25.605] }));
+});
+test("foreign GeoJSON: MultiPolygon split, simplestyle colours read", () => {
+  const gj = { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "Wards", stroke: "#123456", "stroke-width": 2 },
+    geometry: { type: "MultiPolygon", coordinates: [[[[0, 0], [1, 0], [1, 1], [0, 0]]], [[[2, 2], [3, 2], [3, 3], [2, 2]]]] } }] };
+  const r = G.importGeoJSON(JSON.stringify(gj), "wards");
+  assert(r.features.length === 2 && r.features[0].properties.style.color === "#123456");
+});
+
+/* ---------- CSV ---------- */
+test("CSV rows become markers; bad rows reported", () => {
+  const csv = "Name,Latitude,Longitude,Layer\nA,25.60,85.10,Poles\nB,25.61,85.11,Poles\nbad,abc,85,Poles\n";
+  const r = G.importTable(csv, "points", "x");
+  assert(r.features.length === 2 && r.layers[0].name === "Poles");
+  assert(JSON.stringify(r.features[0].geometry.coordinates) === "[85.1,25.6]");
+  assert(r.warnings.some((w) => w.includes("Row 4")));
+  assert(G.importTable(csv, "line", "x").features[0].geometry.type === "LineString");
+});
+test("CSV with semicolons and quoted commas", () => {
+  const r = G.importTable('name;lat;lon\n"Gate, North";25.6;85.1\n', "points", "x");
+  assert(r.features[0].properties.name === "Gate, North");
+});
+test("out-of-range latitude is rejected", () => {
+  let threw = false;
+  try { G.importTable("name,lat,lon\nX,95.1,25.6\n", "points", "x"); } catch (e) { threw = true; }
+  assert(threw);
+});
+
+/* ---------- alignment maths ---------- */
+const X = SM.xf;
+test("2-point alignment recovers move + rotate + scale exactly", () => {
+  const T = X.mul(X.translate(9500000, 2950000), X.mul(X.rotate(0.7), X.scale(0.35)));
+  const src = [[0, 0], [1200, -800]], dst = src.map((p) => X.apply(T, p));
+  const F = X.fitSimilarity(src, dst);
+  F.forEach((v, i) => assert(Math.abs(v - T[i]) < 1e-6 * Math.max(1, Math.abs(T[i])), "coef " + i));
+});
+test("3-point alignment also corrects stretching (affine)", () => {
+  const T = [0.4, 0.05, -0.02, 0.31, 9500000, 2950000];
+  const src = [[100, -100], [1100, -100], [100, -700], [1100, -700]], dst = src.map((p) => X.apply(T, p));
+  const F = X.fitAffine(src, dst);
+  X.residuals(F, src, dst).forEach((r) => assert(r < 1e-6, "residual " + r));
+});
+test("true-scale fit keeps the drawing scale and only turns/moves it", () => {
+  const T = X.mul(X.translate(500, 800), X.mul(X.rotate(-0.3), X.scale(1)));
+  const src = [[0, 0], [200, 0], [200, 120]], dst = src.map((p) => X.apply(T, p));
+  const F = X.fitSimilarity(src, dst, { scale: 1 });
+  assert(Math.abs(X.decompose(F).scale - 1) < 1e-12 && Math.abs(X.decompose(F).rot + 0.3) < 1e-9);
+});
+test("local metric frame: 100 m east is 100 m on the ellipsoid", () => {
+  const Fr = SM.crs.localFrame(25.6, 85.14), p = Fr.toLonLat([100, 0]);
+  assert(near(geo.distance([85.14, 25.6], p), 100, 1e-4));
+});
+
+/* ---------- Shapefile ---------- */
+function shpRoundTrip(crs) {
+  const zip = SM.shp.exportZip(project(), { crs, onlyVisible: false });
+  const sets = SM.shp.readSets(SM.shp.collect(SM.shp.unzip(zip)));
+  const defs = {}; sets.forEach((s) => { defs[s.name] = s.prj; });
+  return { sets, res: SM.shp.toFeatures(sets, defs) };
+}
+test("Shapefile export → import round trip (WGS84)", () => {
+  const { sets, res } = shpRoundTrip("wgs84");
+  assert(sets.map((s) => s.name.split("_").pop()).sort().join() === "lines,points,polygons");
+  const plot = res.features.find((f) => f.properties.name === "Plot");
+  assert(plot && near(plot.geometry.coordinates[0][0][0], 85.1, 1e-9) && near(plot.geometry.coordinates[0][0][1], 25.6, 1e-9), "plot corner");
+  assert(res.features.length === 5, "count " + res.features.length);
+});
+test("Shapefile in UTM 45N comes back to the same place", () => {
+  const { res } = shpRoundTrip("utm45n");
+  const m = res.features.find((f) => f.properties.name === "In hidden layer");
+  assert(m && near(m.geometry.coordinates[0], 85.2, 1e-8) && near(m.geometry.coordinates[1], 25.7, 1e-8));
+  const plot = res.features.find((f) => f.properties.name === "Plot");
+  assert(near(geo.polygonArea(plot.geometry.coordinates), geo.polygonArea(project().features[0].geometry.coordinates), 0.01));
+});
+test("Shapefile text attributes keep Hindi (UTF-8)", () => {
+  const p = project(); p.features[0].properties.name = "पटना प्लॉट";
+  const sets = SM.shp.readSets(SM.shp.collect(SM.shp.unzip(SM.shp.exportZip(p, {}))));
+  const poly = sets.find((s) => /polygons/.test(s.name));
+  assert(poly.dbf.rows[0].NAME === "पटना प्लॉट", poly.dbf.rows[0].NAME);
+});
+
+/* ---------- AutoCAD geometry ---------- */
+test("CAD polyline bulge becomes a true arc", () => {
+  const pts = SM.cad._test.plinePoints([[200, 100, Math.tan(Math.PI / 8)], [180, 120, 0]], false);
+  pts.forEach((p) => assert(near(Math.hypot(p[0] - 180, p[1] - 100), 20, 1e-9)));
+  assert(pts.length > 5);
+});
+test("DXF: lines, circle, block and text are read", () => {
+  const dxf = ["0","SECTION","2","HEADER","9","$INSUNITS","70","6","0","ENDSEC","0","SECTION","2","BLOCKS",
+    "0","BLOCK","8","0","2","B1","70","0","10","0","20","0","30","0","3","B1","0","CIRCLE","8","0","10","0","20","0","30","0","40","2","0","ENDBLK","8","0",
+    "0","ENDSEC","0","SECTION","2","ENTITIES",
+    "0","LINE","8","ROAD","10","0","20","0","30","0","11","100","21","0","31","0",
+    "0","INSERT","8","TREES","2","B1","10","50","20","50","30","0","41","2","42","2",
+    "0","TEXT","8","TXT","10","5","20","5","30","0","40","2","1","GATE",
+    "0","ENDSEC","0","EOF"].join("\n");
+  const model = SM.cad._test.fromDxfParser(new DxfParser().parseSync(dxf));
+  const ex = SM.cad.explode(model, {});
+  const kinds = ex.shapes.map((s) => s.k).sort().join();
+  assert(kinds === "circle,line,text", kinds);
+  const c = ex.shapes.find((s) => s.k === "circle");
+  assert(near(c.c[0], 50, 1e-9) && near(c.r, 4, 1e-9), "scaled block circle");
+  assert(model.insunits === 6);
+});
+test("MText formatting codes are cleaned", () => assert(SM.cad.cleanMText("{\\fArial|b1;STAGE}\\PAREA %%c20") === "STAGE\nAREA Ø20"));
+
+/* ---------- report ---------- */
+const failed = results.filter((r) => !r.ok);
+document.getElementById("summary").textContent = failed.length ? `${failed.length} of ${results.length} checks FAILED` : `All ${results.length} checks passed ✓`;
+document.getElementById("summary").style.color = failed.length ? "var(--bad)" : "var(--ok)";
+const list = document.getElementById("list");
+results.forEach((r) => {
+  const li = document.createElement("li");
+  li.className = r.ok ? "ok" : "bad";
+  li.innerHTML = `<b>${r.ok ? "✓" : "✗"}</b><span></span>`;
+  li.querySelector("span").textContent = r.name;
+  if (!r.ok) { const s = document.createElement("small"); s.textContent = r.err; li.querySelector("span").append(s); }
+  list.append(li);
+});
+window.__results = results;
+</script>
+</body>
+</html>
