@@ -1,0 +1,61 @@
+{
+  "generated": "2026-11-07T02:25:20.172Z",
+  "seed": 42,
+  "groupA": {
+    "files": [
+      "group_a_targets_1.csv"
+    ],
+    "rows": 2000,
+    "distinctKeys": 1940,
+    "duplicateKeys": 59
+  },
+  "groupB": {
+    "files": [
+      "group_b_master_1.csv",
+      "group_b_master_2.csv",
+      "group_b_master_3.csv"
+    ],
+    "rows": 10010,
+    "headers": [
+      [
+        "CA Number",
+        "Consumer Name",
+        "Father Name",
+        "Address",
+        "Mobile",
+        "Arrear",
+        "Tariff",
+        "Last Payment Date"
+      ],
+      [
+        "CA No",
+        "Name",
+        "Address",
+        "Mobile No",
+        "Arrear",
+        "Load KW",
+        "Last Payment Date"
+      ],
+      [
+        "Account No",
+        "Consumer Name",
+        "Mobile",
+        "Arrear",
+        "Tariff",
+        "Last Payment Date"
+      ]
+    ]
+  },
+  "expected": {
+    "commonFirstFirst": 1215,
+    "aNotB": 725,
+    "matchedKeys": 1215,
+    "commonAllAll": 1287
+  },
+  "bytes": {
+    "group_a_targets_1.csv": 79579,
+    "group_b_master_1.csv": 318953,
+    "group_b_master_2.csv": 271611,
+    "group_b_master_3.csv": 212667
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "at": "2026-11-07T10:41:43.560Z",
+  "results": [
+    {
+      "check": "ANSI file detected as Windows-1252",
+      "ok": true
+    },
+    {
+      "check": "Mixed line endings detected",
+      "ok": true
+    },
+    {
+      "check": "Key columns auto-detected for all files",
+      "ok": true
+    },
+    {
+      "check": "[common, first/first] Mode A file = Mode B file (Save As)",
+      "ok": true,
+      "detail": "1215 rows"
+    },
+    {
+      "check": "[common, first/first] browser = engine run in Node",
+      "ok": true
+    },
+    {
+      "check": "[all A with status, keep all × keep all] Mode A file = Mode B file (Save As)",
+      "ok": true,
+      "detail": "2030 rows"
+    },
+    {
+      "check": "[all A with status, keep all × keep all] browser = engine run in Node",
+      "ok": true
+    },
+    {
+      "check": "[B not in A, newest] Mode A file = Mode B file (Save As)",
+      "ok": true,
+      "detail": "8485 rows"
+    },
+    {
+      "check": "[B not in A, newest] browser = engine run in Node",
+      "ok": true
+    },
+    {
+      "check": "[A not in B, ignore case + leading zeros] Mode A file = Mode B file (Save As)",
+      "ok": true,
+      "detail": "725 rows"
+    },
+    {
+      "check": "[A not in B, ignore case + leading zeros] browser = engine run in Node",
+      "ok": true
+    },
+    {
+      "check": "[join side by side, last, B filter] Mode A file = Mode B file (Save As)",
+      "ok": true,
+      "detail": "245 rows"
+    },
+    {
+      "check": "[join side by side, last, B filter] browser = engine run in Node",
+      "ok": true
+    },
+    {
+      "check": "XLSX export: valid workbook with same row count as CSV",
+      "ok": true,
+      "detail": "1215 rows"
+    },
+    {
+      "check": "XLSX export: IDs are text cells with leading zeros",
+      "ok": true
+    },
+    {
+      "check": "Folder export (A) = Save As result",
+      "ok": true
+    },
+    {
+      "check": "Folder export (B) = Save As result",
+      "ok": true
+    },
+    {
+      "check": "Download export file",
+      "ok": true,
+      "detail": "files: dl.csv, dl_duplicates.csv, dl_issues.csv, dl_summary.csv; size 175511 vs 175511"
+    },
+    {
+      "check": "Duplicate report downloaded",
+      "ok": true
+    },
+    {
+      "check": "Data issue report downloaded",
+      "ok": true
+    },
+    {
+      "check": "Summary downloaded",
+      "ok": true
+    },
+    {
+      "check": "Duplicate report: Mode A = Mode B",
+      "ok": true
+    },
+    {
+      "check": "Cancel then run again works (Mode B)",
+      "ok": true
+    },
+    {
+      "check": "Template restores key columns after reload",
+      "ok": true
+    },
+    {
+      "check": "Template restores output columns",
+      "ok": true
+    },
+    {
+      "check": "Clear temporary data removes export and conversion copies",
+      "ok": true,
+      "detail": "e2e-save,e2e-folder"
+    },
+    {
+      "check": "No JavaScript errors on the page",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}
