@@ -134,6 +134,7 @@
   };
   function initCompass() {
     const btn = SM.$("#btn-compass"), pop = SM.$("#rot-pop");
+    if (!btn || !pop) return; // page from an older version still cached
     btn.addEventListener("click", (e) => { e.stopPropagation(); pop.classList.toggle("open"); if (pop.classList.contains("open")) { const r = btn.getBoundingClientRect(); pop.style.top = r.bottom + 6 + "px"; pop.style.left = Math.max(8, r.right - pop.offsetWidth) + "px"; } });
     pop.addEventListener("click", (e) => e.stopPropagation());
     document.addEventListener("click", () => pop.classList.remove("open"));

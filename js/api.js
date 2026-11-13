@@ -22,8 +22,15 @@
         if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "id" }).createIndex("updated_at", "updated_at");
         if (!db.objectStoreNames.contains("drafts")) db.createObjectStore("drafts");
       };
-      req.onsuccess = () => resolve(req.result);
+      req.onsuccess = () => {
+        const db = req.result;
+        // if a newer SatMap opens in another tab, let it upgrade instead of blocking it
+        db.onversionchange = () => { db.close(); dbPromise = null; SM.bus.emit("storage-blocked", "newer"); };
+        SM.bus.emit("storage-ok");
+        resolve(db);
+      };
       req.onerror = () => reject(new Error("Browser storage is blocked: " + (req.error && req.error.message)));
+      req.onblocked = () => SM.bus.emit("storage-blocked", "older"); // keeps waiting; succeeds once the old tab closes
     });
     dbPromise.catch(() => { dbPromise = null; });
     return dbPromise;

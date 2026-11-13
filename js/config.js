@@ -10,7 +10,7 @@
 "use strict";
 window.SM = window.SM || {};
 window.SM.APP_CONFIG = {
-  version: "1.0.0-web",
+  version: "1.4.0-web",
 
   // where the map opens for a brand-new user (Patna)
   defaultView: { center: [25.5941, 85.1376], zoom: 12 },
