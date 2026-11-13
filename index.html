@@ -9,9 +9,9 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.4.0">
-<link rel="stylesheet" href="vendor/geoman/leaflet-geoman.css?v=1.4.0">
-<link rel="stylesheet" href="css/style.css?v=1.4.0">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.4.1">
+<link rel="stylesheet" href="vendor/geoman/leaflet-geoman.css?v=1.4.1">
+<link rel="stylesheet" href="css/style.css?v=1.4.1">
 </head>
 <body>
 <!-- ======================= SVG icon sprite ======================= -->
@@ -72,6 +72,7 @@
   <header id="topbar">
     <button class="icon-btn only-mobile" id="btn-left-toggle" title="Layers & objects"><svg><use href="#i-layers"/></svg></button>
     <div class="brand"><svg class="brand-mark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg><span>SatMap</span></div>
+    <a class="tb-btn primary" id="btn-fullscreen-tab" href="./" target="_blank" rel="noopener" hidden title="Open SatMap in its own tab, using the whole screen">&#8599;<span>Open full screen</span></a>
     <input id="project-name" class="project-name" value="Untitled project" maxlength="120" title="Project name (click to rename)">
     <span id="save-state" class="save-state" title="Save status">●</span>
     <div class="tb-group">
@@ -243,32 +244,32 @@
 <div id="modal-root"></div>
 <input type="file" id="file-input" accept=".kml,.kmz,.geojson,.json,.csv,.txt,.zip,.shp,.dbf,.prj,.cpg,.shx,.dxf,.dwg,.png,.jpg,.jpeg,.webp,.gif,.bmp,.svg" multiple hidden>
 
-<script src="vendor/leaflet/leaflet.js?v=1.4.0"></script>
-<script src="vendor/geoman/leaflet-geoman.min.js?v=1.4.0"></script>
-<script src="vendor/turf/turf.min.js?v=1.4.0"></script>
-<script src="vendor/jspdf/jspdf.umd.min.js?v=1.4.0"></script>
-<script src="vendor/fflate/fflate.min.js?v=1.4.0"></script>
-<script src="vendor/proj4/proj4.js?v=1.4.0"></script>
-<script src="vendor/dxf-parser/dxf-parser.js?v=1.4.0"></script>
-<script src="js/config.js?v=1.4.0"></script>
-<script src="js/util.js?v=1.4.0"></script>
-<script src="js/geodesy.js?v=1.4.0"></script>
-<script src="js/transform.js?v=1.4.0"></script>
-<script src="js/crs.js?v=1.4.0"></script>
-<script src="js/gis.js?v=1.4.0"></script>
-<script src="js/shp.js?v=1.4.0"></script>
-<script src="js/api.js?v=1.4.0"></script>
-<script src="js/store.js?v=1.4.0"></script>
-<script src="js/mapview.js?v=1.4.0"></script>
-<script src="js/render.js?v=1.4.0"></script>
-<script src="js/overlays.js?v=1.4.0"></script>
-<script src="js/cad.js?v=1.4.0"></script>
-<script src="js/tools.js?v=1.4.0"></script>
-<script src="js/areaops.js?v=1.4.0"></script>
-<script src="js/panels.js?v=1.4.0"></script>
-<script src="js/props.js?v=1.4.0"></script>
-<script src="js/io.js?v=1.4.0"></script>
-<script src="js/print.js?v=1.4.0"></script>
-<script src="js/app.js?v=1.4.0"></script>
+<script src="vendor/leaflet/leaflet.js?v=1.4.1"></script>
+<script src="vendor/geoman/leaflet-geoman.min.js?v=1.4.1"></script>
+<script src="vendor/turf/turf.min.js?v=1.4.1"></script>
+<script src="vendor/jspdf/jspdf.umd.min.js?v=1.4.1"></script>
+<script src="vendor/fflate/fflate.min.js?v=1.4.1"></script>
+<script src="vendor/proj4/proj4.js?v=1.4.1"></script>
+<script src="vendor/dxf-parser/dxf-parser.js?v=1.4.1"></script>
+<script src="js/config.js?v=1.4.1"></script>
+<script src="js/util.js?v=1.4.1"></script>
+<script src="js/geodesy.js?v=1.4.1"></script>
+<script src="js/transform.js?v=1.4.1"></script>
+<script src="js/crs.js?v=1.4.1"></script>
+<script src="js/gis.js?v=1.4.1"></script>
+<script src="js/shp.js?v=1.4.1"></script>
+<script src="js/api.js?v=1.4.1"></script>
+<script src="js/store.js?v=1.4.1"></script>
+<script src="js/mapview.js?v=1.4.1"></script>
+<script src="js/render.js?v=1.4.1"></script>
+<script src="js/overlays.js?v=1.4.1"></script>
+<script src="js/cad.js?v=1.4.1"></script>
+<script src="js/tools.js?v=1.4.1"></script>
+<script src="js/areaops.js?v=1.4.1"></script>
+<script src="js/panels.js?v=1.4.1"></script>
+<script src="js/props.js?v=1.4.1"></script>
+<script src="js/io.js?v=1.4.1"></script>
+<script src="js/print.js?v=1.4.1"></script>
+<script src="js/app.js?v=1.4.1"></script>
 </body>
 </html>

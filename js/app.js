@@ -38,7 +38,18 @@
     return Object.entries(need).filter(([, t]) => !(typeof t === "string" ? window[t] : t())).map(([f]) => f);
   }
 
+  /** Inside another page (e.g. Google Sites): offer the full app in its own tab. */
+  function initEmbedded() {
+    let framed = false;
+    try { framed = window.self !== window.top; } catch (e) { framed = true; }
+    if (!framed) return;
+    document.documentElement.classList.add("sm-embedded");
+    const a = document.getElementById("btn-fullscreen-tab");
+    if (a) { a.href = location.href.split("#")[0]; a.hidden = false; }
+  }
+
   async function boot() {
+    try { initEmbedded(); } catch (e) { /* ignore */ }
     const missing = missingFiles();
     if (missing.length) { startupError("SatMap could not start — some files did not load", "These files are missing or could not be read:", missing); return; }
     let cfg;

@@ -384,3 +384,8 @@ input[type=color] { width: 34px; height: 28px; border: 1px solid var(--line); bo
 #boot-error ol { margin: 0 0 14px; padding-left: 20px; line-height: 1.6; }
 #boot-error .be-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 #boot-error .be-note { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; }
+
+/* Open full screen link, shown only when SatMap sits inside another page */
+#btn-fullscreen-tab { text-decoration: none; margin: 0 6px; font-weight: 600; white-space: nowrap; flex: none; }
+#btn-fullscreen-tab[hidden] { display: none; }
+@media (max-width: 760px) { #btn-fullscreen-tab span { display: none; } }
