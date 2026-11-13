@@ -3,7 +3,7 @@
 Draw on satellite maps, measure distances and areas, organise drawings in
 layers, and export **KML/KMZ (Google Earth)**, **GeoJSON**, **PNG** and
 **true-scale PDF**. Everything runs inside the web browser: there is **no
-server and nothing to install**, so it can be hosted free on **GitHub Pages**.
+server and nothing to install**, so it can be hosted free on **GitHub Pages**..
 
 ---
 
